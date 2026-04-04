@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, RefreshCont
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { Search, UserPlus, Shield, ShieldCheck, User as UserIcon, MoreVertical, ArrowLeft } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 
 interface Profile {
   id: string;
@@ -19,8 +19,18 @@ export default function UserControl() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from("profiles").select("*").order("name", { ascending: true });
-    if (!error && data) setUsers(data);
+    try {
+      const { data } = await api.get("/auth/users");
+      if (data) {
+        const formatted = data.map((u: any) => ({
+          ...u,
+          id: u._id
+        }));
+        setUsers(formatted);
+      }
+    } catch (error) {
+      console.error("Users fetch error:", error);
+    }
     setLoading(false);
     setRefreshing(false);
   };
@@ -35,8 +45,13 @@ export default function UserControl() {
       { 
         text: "Yes, Change", 
         onPress: async () => {
-          const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", userId);
-          if (!error) { Alert.alert("Success", "Role updated."); fetchUsers(); }
+          try {
+            await api.put(`/auth/users/${userId}/role`, { role: newRole });
+            Alert.alert("Success", "Role updated."); 
+            fetchUsers();
+          } catch (error: any) {
+            Alert.alert("Error", error.response?.data?.message || error.message);
+          }
         } 
       },
     ]);

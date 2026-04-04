@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { useState, useEffect } from "react";
 import { ClipboardList, ChefHat, CheckSquare, Clock } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 
 interface AggregatedItem {
   name: string;
@@ -14,25 +14,30 @@ export default function KitchenView() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchKitchenData = async () => {
-    // Only fetch orders that are 'accepted' or 'preparing'
-    const { data, error } = await supabase
-      .from("orders")
-      .select("items")
-      .in("status", ["accepted", "preparing"]);
-    
-    if (!error && data) {
-      const counts: { [key: string]: number } = {};
-      data.forEach((order) => {
-        order.items.forEach((item: any) => {
-          counts[item.name] = (counts[item.name] || 0) + item.quantity;
-        });
-      });
+    try {
+      const { data } = await api.get("/orders");
+      
+      if (data) {
+        // Filter for 'accepted' or 'preparing' status
+        const activeOrders = data.filter((o: any) => 
+          o.status === "accepted" || o.status === "preparing"
+        );
 
-      const aggregated = Object.entries(counts).map(([name, quantity]) => ({
-        name,
-        quantity,
-      }));
-      setItemsToCook(aggregated);
+        const counts: { [key: string]: number } = {};
+        activeOrders.forEach((order: any) => {
+          order.items.forEach((item: any) => {
+            counts[item.name] = (counts[item.name] || 0) + item.quantity;
+          });
+        });
+
+        const aggregated = Object.entries(counts).map(([name, quantity]) => ({
+          name,
+          quantity,
+        }));
+        setItemsToCook(aggregated);
+      }
+    } catch (error) {
+      console.error("Kitchen fetch error:", error);
     }
     setLoading(false);
     setRefreshing(false);
@@ -41,15 +46,13 @@ export default function KitchenView() {
   useEffect(() => {
     fetchKitchenData();
 
-    const subscription = supabase
-      .channel("kitchen")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
-        fetchKitchenData();
-      })
-      .subscribe();
+    // Vercel-compatible polling every 10 seconds
+    const intervalId = setInterval(() => {
+      fetchKitchenData();
+    }, 10000);
 
     return () => {
-      supabase.removeChannel(subscription);
+      clearInterval(intervalId);
     };
   }, []);
 

@@ -19,7 +19,7 @@ import Animated, {
   withSpring,
   runOnJS
 } from 'react-native-reanimated';
-import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 
 const AnimatedCoffee = () => {
   const roamX = useSharedValue(0);
@@ -30,7 +30,6 @@ const AnimatedCoffee = () => {
   const steamY = useSharedValue(-10);
 
   useEffect(() => {
-    // 1. Start Roaming (More prominent)
     roamX.value = withRepeat(
       withSequence(withTiming(-12, { duration: 400 }), withTiming(12, { duration: 800 }), withTiming(0, { duration: 400 })),
       -1, true
@@ -44,9 +43,7 @@ const AnimatedCoffee = () => {
       -1, true
     );
 
-    // 2. Trigger Jump after 1.8s
     setTimeout(() => {
-      // Clear roaming and jump
       roamX.value = withSpring(0);
       roamY.value = withSpring(0);
       roamRotate.value = withSpring(0);
@@ -54,8 +51,6 @@ const AnimatedCoffee = () => {
         withSpring(1.4, { damping: 10 }),
         withSpring(1, { damping: 15 })
       );
-
-      // 3. Vaporation entry after landing
       steamOpacity.value = withDelay(400, withTiming(1, { duration: 600 }));
       steamY.value = withDelay(400, withSpring(0, { damping: 10 }));
     }, 1800);
@@ -78,14 +73,11 @@ const AnimatedCoffee = () => {
   return (
     <View className="items-center justify-center w-20 h-20">
       <Animated.View style={animatedStyle}>
-        {/* Steam Layer */}
         <Animated.View style={[steamStyle, { flexDirection: 'row', gap: 4, position: 'absolute', top: -14, left: 4 }]}>
           {[1, 2, 3].map(i => (
             <View key={i} className="w-[2px] h-[7px] bg-primary rounded-full opacity-80" />
           ))}
         </Animated.View>
-        
-        {/* Cup Vessel */}
         <View className="flex-row items-center mt-2">
           <View className="w-[26px] h-[22px] border-[2.5px] border-primary rounded-b-xl" />
           <View className="w-[7px] h-[12px] border-[2.5px] border-primary rounded-r-md border-l-0 -ml-[1px]" />
@@ -95,11 +87,9 @@ const AnimatedCoffee = () => {
   );
 };
 
-import { useAuth } from "../context/AuthContext";
-
 export default function Index() {
   const router = useRouter();
-  const { user, session } = useAuth();
+  const { user } = useAuth();
 
   const navigateToRole = (role: 'customer' | 'admin') => {
     if (user) {
@@ -124,7 +114,6 @@ export default function Index() {
       </View>
 
       <View className="space-y-8 pb-12">
-        {/* Student Portal Card */}
         <TouchableOpacity 
           onPress={() => navigateToRole('customer')}
           className="p-8 rounded-5xl bg-card border border-primary/20 shadow-2xl relative overflow-hidden"
@@ -157,7 +146,6 @@ export default function Index() {
           </View>
         </TouchableOpacity>
 
-        {/* Admin Portal Card */}
         <TouchableOpacity 
           onPress={() => navigateToRole('admin')}
           className="p-8 rounded-5xl bg-card border border-primary/20 shadow-xl relative overflow-hidden"
@@ -185,7 +173,6 @@ export default function Index() {
           </View>
         </TouchableOpacity>
 
-        {/* System Control Center - Flying from Left */}
         <Animated.View entering={SlideInLeft.delay(1800).duration(800).springify()}>
           <TouchableOpacity 
             className="flex-row items-center gap-3 px-6 py-3 bg-zinc-950 rounded-2xl border border-primary/5 shadow-inner"
@@ -198,12 +185,11 @@ export default function Index() {
           </TouchableOpacity>
         </Animated.View>
 
-        {/* Status Indicator - Flying from Right */}
         <Animated.View entering={SlideInRight.delay(2000).duration(800).springify()} className="items-center">
           <View className="flex-row items-center gap-3 px-6 py-3 rounded-full bg-zinc-950 border border-primary/5 shadow-inner">
-            <View className={`w-2 h-2 rounded-full ${session ? "bg-green-500/50" : "bg-red-500/50"}`} />
+            <View className={`w-2 h-2 rounded-full ${user ? "bg-green-500/50" : "bg-red-500/50"}`} />
             <Text className="text-[10px] uppercase font-black text-zinc-600 tracking-[2.5px]">
-              {session ? "Authenticated Session" : "Gateway Offline"}
+              {user ? "Authenticated Session" : "Gateway Offline"}
             </Text>
           </View>
         </Animated.View>

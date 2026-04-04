@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert } from "r
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import { Clock, Check, X, Eye, Bell, CheckCircle2, Loader2, ArrowLeft } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
 interface Order {
@@ -25,35 +25,42 @@ export default function AdminDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*, profiles(name)")
-      .order("created_at", { ascending: false });
-    
-    if (!error && data) setOrders(data);
+    try {
+      const { data } = await api.get("/orders");
+      // Map server data formatting if necessary
+      // Assuming server populates customer_id: { name, email }
+      const formatted = data.map((o: any) => ({
+        ...o,
+        id: o._id,
+        profiles: { name: o.customer_id?.name }
+      }));
+      setOrders(formatted);
+    } catch (error) {
+      console.error(error);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchOrders();
 
-    // PHASE 5: Real-time listener for "Instagram-style" notifications
-    const subscription = supabase
-      .channel("orders")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (payload) => {
-        fetchOrders();
-        // Here we will trigger the Haptic Vibration in Phase 6
-      })
-      .subscribe();
+    // Polling every 10 seconds for pseudo real-time sync (Vercel Compatible)
+    const intervalId = setInterval(() => {
+      fetchOrders();
+    }, 10000);
 
     return () => {
-      supabase.removeChannel(subscription);
+      clearInterval(intervalId);
     };
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (!error) fetchOrders();
+    try {
+      await api.put(`/orders/${id}/status`, { status });
+      fetchOrders();
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

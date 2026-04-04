@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert, Modal } from "react-native";
 import { useState, useEffect } from "react";
 import { Package, Plus, Edit2, Trash2, CheckCircle, XCircle, X, DollarSign, Image as ImageIcon } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 
 interface MenuItem {
   id: string;
@@ -20,8 +20,18 @@ export default function ManageMenu() {
   const [formData, setFormData] = useState({ name: "", description: "", price: "", image_url: "", is_available: true });
 
   const fetchItems = async () => {
-    const { data, error } = await supabase.from("menu_items").select("*").order("created_at", { ascending: false });
-    if (!error && data) setItems(data);
+    try {
+      const { data } = await api.get("/menu");
+      if (data) {
+        const formatted = data.map((item: any) => ({
+          ...item,
+          id: item._id
+        }));
+        setItems(formatted);
+      }
+    } catch (error) {
+      console.error("Menu fetch error:", error);
+    }
     setLoading(false);
   };
 
@@ -37,19 +47,30 @@ export default function ManageMenu() {
 
     const payload = { ...formData, price: Number(formData.price) };
 
-    if (editingItem) {
-      const { error } = await supabase.from("menu_items").update(payload).eq("id", editingItem.id);
-      if (!error) { Alert.alert("Updated", "Item updated successfully."); fetchItems(); setModalVisible(false); }
-    } else {
-      // For now, we manually provide cafeteria_id or link to the admin's canteen
-      // We will handle cafeteria_id in Phase 6
-      Alert.alert("Note", " cafeteria_id mapping is next.");
+    try {
+      if (editingItem) {
+        await api.put(`/menu/${editingItem.id}`, payload);
+        Alert.alert("Updated", "Item updated successfully.");
+      } else {
+        // Backend handles creating/uploading. 
+        // For simplicity, we just send JSON here as the UI doesn't have an image picker yet.
+        await api.post("/menu", payload);
+        Alert.alert("Success", "New item created!");
+      }
+      fetchItems();
+      setModalVisible(false);
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data?.message || error.message);
     }
   };
 
   const toggleAvailability = async (id: string, current: boolean) => {
-    await supabase.from("menu_items").update({ is_available: !current }).eq("id", id);
-    fetchItems();
+    try {
+      await api.put(`/menu/${id}`, { is_available: !current });
+      fetchItems();
+    } catch (error) {
+      console.error("Availability toggle error:", error);
+    }
   };
 
   return (

@@ -14,6 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ArrowLeft, CheckCircle2, RefreshCw, Mail } from "lucide-react-native";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -29,6 +30,7 @@ const OTP_LENGTH = 6;
 export default function Verify() {
   const router = useRouter();
   const { email, intent } = useLocalSearchParams<{ email: string; intent: string }>();
+  // ... rest of the existing state ...
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -58,12 +60,10 @@ export default function Verify() {
   }));
 
   const handleOtpChange = (text: string, index: number) => {
-    // Only accept digits
     const digit = text.replace(/\D/g, "").slice(-1);
     const newOtp = [...otp];
     newOtp[index] = digit;
     setOtp(newOtp);
-    // Auto-advance to next box when a digit is entered
     if (digit && index < OTP_LENGTH - 1) {
       inputs.current[index + 1]?.focus();
     }
@@ -79,8 +79,8 @@ export default function Verify() {
   };
 
   const handleVerify = async () => {
-    const token = otp.join("");
-    if (token.length < OTP_LENGTH) {
+    const tokenStr = otp.join("");
+    if (tokenStr.length < OTP_LENGTH) {
       Alert.alert("Incomplete Code", "Please enter all 6 digits of your OTP.");
       return;
     }
@@ -89,34 +89,17 @@ export default function Verify() {
     try {
       const { error } = await supabase.auth.verifyOtp({
         email,
-        token,
-        type: "email",
+        token: tokenStr,
+        type: 'email'
       });
 
       if (error) throw error;
 
-      // Create profile if first time
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", user.id)
-          .single();
+      // Success - session is automatically set by Supabase
+      // AuthContext will pick it up and root layout will redirect.
 
-        if (!profile) {
-          const { error: profileError } = await supabase.from("profiles").insert({
-            id: user.id,
-            email: user.email,
-            name: user.email?.split("@")[0],
-            role: intent === "admin" ? "admin" : "customer",
-          });
-          if (profileError) console.warn("Profile creation error:", profileError.message);
-        }
-      }
-      // AuthContext will detect the new session and handle redirect automatically
     } catch (error: any) {
-      Alert.alert("Verification Failed", error.message || "Invalid or expired code. Please try again.");
+      Alert.alert("Verification Failed", error.message || "Invalid or expired code.");
       setOtp(Array(OTP_LENGTH).fill(""));
       inputs.current[0]?.focus();
     } finally {
@@ -127,17 +110,15 @@ export default function Verify() {
   const handleResend = async () => {
     if (resendCooldown > 0) return;
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: true },
-      });
+      const { error } = await supabase.auth.signInWithOtp({ email });
       if (error) throw error;
+
       setResendCooldown(60);
       setOtp(Array(OTP_LENGTH).fill(""));
       inputs.current[0]?.focus();
       Alert.alert("Code Sent", "A new verification code has been sent to your email.");
     } catch (error: any) {
-      Alert.alert("Resend Failed", error.message);
+      Alert.alert("Resend Failed", error.message || "Failed to resend code.");
     }
   };
 

@@ -3,7 +3,6 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { NativeWindStyleSheet } from "nativewind";
-import { supabase } from "../lib/supabase";
 import "../global.css";
 
 NativeWindStyleSheet.setOutput({
@@ -19,19 +18,20 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === "login" || segments[0] === "verify";
-    const inLandingPage = segments[0] === undefined || segments[0] === "index";
+    const inLandingPage = segments[0] === undefined || segments[0] === "";
+
+    console.log("[Navigation] State - User:", !!user, "Role:", role, "Segments:", segments);
 
     if (!user) {
-      // Not logged in - only allow index, login, verify
       if (!inLandingPage && !inAuthGroup) {
+        console.log("[Navigation] Redirecting to / (Not Logged In)");
         router.replace("/");
       }
     } else if (role) {
-      // Logged in with role - redirect to correct dashboard if trying to access wrong area or landing
       if (inLandingPage || inAuthGroup) {
-        if (role === 'admin') router.replace("/(admin)");
-        else if (role === 'superadmin') router.replace("/(superadmin)");
-        else router.replace("/(tabs)");
+        const dest = role === 'admin' ? "/(admin)" : role === 'superadmin' ? "/(superadmin)" : "/(tabs)";
+        console.log("[Navigation] Redirecting to:", dest);
+        router.replace(dest as any);
       }
     }
   }, [user, role, loading, segments]);

@@ -2,7 +2,6 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert } fro
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ArrowLeft, Clock, CreditCard, Upload, Send, Loader2 } from "lucide-react-native";
-import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 
 export default function CartScreen() {

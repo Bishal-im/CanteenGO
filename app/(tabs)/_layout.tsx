@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
 
 export default function TabsLayout() {
-  const { session, role, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -14,8 +14,8 @@ export default function TabsLayout() {
     );
   }
 
-  if (!session || role !== 'customer') {
-    return <Redirect href="/" />;
+  if (!user || role !== 'customer') {
+    return null; // Let the root layout handle the redirect
   }
 
   return (

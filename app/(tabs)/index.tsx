@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, TextInput } 
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Search, ShoppingBag, Plus, Minus, Info } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
 interface MenuItem {
@@ -23,12 +23,18 @@ export default function MenuScreen() {
   const [cart, setCart] = useState<{ [key: string]: number }>({});
 
   const fetchMenu = async () => {
-    const { data, error } = await supabase
-      .from("menu_items")
-      .select("*")
-      .eq("is_available", true);
-    
-    if (!error && data) setMenuItems(data);
+    try {
+      const { data } = await api.get("/menu");
+      if (data) {
+        const formatted = data.map((item: any) => ({
+          ...item,
+          id: item._id
+        }));
+        setMenuItems(formatted.filter((item: any) => item.is_available));
+      }
+    } catch (error) {
+      console.error("Menu fetch error:", error);
+    }
     setLoading(false);
   };
 

@@ -41,8 +41,13 @@ export default function Login() {
 
     setLoading(true);
     try {
+      // Send OTP via Supabase
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase()
+        email: email.trim().toLowerCase(),
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: 'canteengo://verify',
+        }
       });
 
       if (error) throw error;
@@ -52,7 +57,8 @@ export default function Login() {
         params: { email: email.trim().toLowerCase(), intent },
       });
     } catch (error: any) {
-      Alert.alert("Login Failed", error.message || "Something went wrong. Please try again.");
+      console.error('Login Error details:', error);
+      Alert.alert("Login Error", error.message || "Failed to send verification code.");
     } finally {
       setLoading(false);
     }

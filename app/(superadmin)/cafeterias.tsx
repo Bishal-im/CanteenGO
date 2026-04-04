@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, RefreshCont
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Plus, Store, MapPin, X, Trash2, Edit2, Coffee, ArrowLeft } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 
 interface Cafeteria {
   id: string;
@@ -20,8 +20,18 @@ export default function CafeteriaManagement() {
   const [formData, setFormData] = useState({ name: "", location: "", image_url: "" });
 
   const fetchCafeterias = async () => {
-    const { data, error } = await supabase.from("cafeterias").select("*").order("name", { ascending: true });
-    if (!error && data) setCafeterias(data);
+    try {
+      const { data } = await api.get("/cafeterias");
+      if (data) {
+        const formatted = data.map((c: any) => ({
+          ...c,
+          id: c._id
+        }));
+        setCafeterias(formatted);
+      }
+    } catch (error) {
+      console.error("Cafeterias fetch error:", error);
+    }
     setLoading(false);
     setRefreshing(false);
   };
@@ -35,11 +45,13 @@ export default function CafeteriaManagement() {
         Alert.alert("Error", "Please fill name and location.");
         return;
     }
-    const { error } = await supabase.from("cafeterias").insert([formData]);
-    if (!error) {
-        Alert.alert("Success", "New canteen created!");
-        setModalVisible(false);
-        fetchCafeterias();
+    try {
+      await api.post("/cafeterias", formData);
+      Alert.alert("Success", "New canteen created!");
+      setModalVisible(false);
+      fetchCafeterias();
+    } catch (error: any) {
+      Alert.alert("Error", error.response?.data?.message || error.message);
     }
   };
 

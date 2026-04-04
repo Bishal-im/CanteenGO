@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
 
 export default function SuperAdminLayout() {
-  const { session, role, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -14,7 +14,7 @@ export default function SuperAdminLayout() {
     );
   }
 
-  if (!session || role !== 'superadmin') {
+  if (!user || role !== 'superadmin') {
     return <Redirect href="/" />;
   }
 

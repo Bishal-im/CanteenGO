@@ -1,0 +1,1 @@
+app/_layout.tsx(22,56): error TS2367: This comparison appears to be unintentional because the types '"" | "profile" | "(admin)" | "kitchen" | "manage" | "(superadmin)" | "cafeterias" | "users" | "(tabs)" | "orders" | "_sitemap" | "cart" | "login" | "verify"' and '"index"' have no overlap.

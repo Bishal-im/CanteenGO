@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 import { ShieldAlert, TrendingUp, Users, Store, Coffee, Activity, ArrowLeft } from "lucide-react-native";
 
 export default function SuperadminStats() {
@@ -10,20 +10,14 @@ export default function SuperadminStats() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async () => {
-    const [orders, canteens, users] = await Promise.all([
-      supabase.from("orders").select("id, total_amount", { count: 'exact' }),
-      supabase.from("cafeterias").select("id", { count: 'exact' }),
-      supabase.from("profiles").select("id", { count: 'exact' })
-    ]);
-
-    const totalRev = orders.data?.reduce((acc, curr) => acc + (curr.total_amount || 0), 0) || 0;
-
-    setStats({ 
-      orders: orders.count || 0, 
-      canteens: canteens.count || 0, 
-      users: users.count || 0,
-      revenue: totalRev
-    });
+    try {
+      const { data } = await api.get("/auth/stats");
+      if (data) {
+        setStats(data);
+      }
+    } catch (error) {
+      console.error("Stats fetch error:", error);
+    }
     setRefreshing(false);
   };
 

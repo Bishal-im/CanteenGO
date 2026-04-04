@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from "react-native";
 import { useState, useEffect } from "react";
 import { ClipboardList, Clock, CheckCircle, XCircle, Info } from "lucide-react-native";
-import { supabase } from "../../lib/supabase";
+import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
 interface Order {
@@ -21,13 +21,18 @@ export default function OrdersScreen() {
 
   const fetchOrders = async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("customer_id", user.id)
-      .order("created_at", { ascending: false });
-    
-    if (!error && data) setOrders(data);
+    try {
+      const { data } = await api.get("/orders/myorders");
+      if (data) {
+        const formatted = data.map((item: any) => ({
+          ...item,
+          id: item._id
+        }));
+        setOrders(formatted);
+      }
+    } catch (error) {
+      console.error("Orders fetch error:", error);
+    }
     setLoading(false);
     setRefreshing(false);
   };
