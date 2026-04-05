@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { supabase } from './supabase';
 
-// Replace with your local IP address for physical devices (found: 192.168.18.240)
-const API_URL = 'http://192.168.18.240:5000/api';
+// Use the environment variable for the API URL; default to localhost for development
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export const api = axios.create({
   baseURL: API_URL,
