@@ -1,14 +1,24 @@
 const express = require('express');
-const { register, verifyOtp, login, getProfile, getStats, getUsers, updateUserRole } = require('../controllers/authController');
+const { register, verifyOtp, login, getProfile, logout, getStats, getUsers, updateUserRole, addAdmin, getAdmins, removeAdmin } = require('../controllers/authController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
-// router.post('/register', register);
-// router.post('/verify', verifyOtp);
-// router.post('/login', login);
+// SuperAdmin-only guard
+const superadmin = (req, res, next) => {
+  if (req.user && req.user.role === 'superadmin') return next();
+  return res.status(403).json({ message: 'Unauthorized - SuperAdmin only' });
+};
+
+// Auth Routes
 router.get('/profile', protect, getProfile);
+router.post('/logout', protect, logout);
 router.get('/stats', protect, admin, getStats);
 router.get('/users', protect, admin, getUsers);
 router.put('/users/:id/role', protect, admin, updateUserRole);
+
+// Admin Whitelist Routes (SuperAdmin only)
+router.post('/admins', protect, superadmin, addAdmin);
+router.get('/admins', protect, superadmin, getAdmins);
+router.delete('/admins/:email', protect, superadmin, removeAdmin);
 
 module.exports = router;

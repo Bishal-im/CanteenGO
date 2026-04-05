@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from "expo-router";
-import { LayoutDashboard, ClipboardList, Package, Loader2 } from "lucide-react-native";
+import { LayoutDashboard, ClipboardList, Package, UserCircle, Loader2 } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
 
@@ -15,7 +15,7 @@ export default function AdminLayout() {
   }
 
   if (!user || role !== 'admin') {
-    return <Redirect href="/" />;
+    return null;
   }
 
   return (
@@ -59,6 +59,13 @@ export default function AdminLayout() {
         options={{
           title: "Manage Menu",
           tabBarIcon: ({ color }) => <Package size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => <UserCircle size={24} color={color} />,
         }}
       />
     </Tabs>

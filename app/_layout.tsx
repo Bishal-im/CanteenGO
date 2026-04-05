@@ -1,8 +1,9 @@
-import { Stack, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, usePathname, useRootNavigationState } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 import { NativeWindStyleSheet } from "nativewind";
+import { View, ActivityIndicator } from "react-native";
 import "../global.css";
 
 NativeWindStyleSheet.setOutput({
@@ -10,35 +11,46 @@ NativeWindStyleSheet.setOutput({
 });
 
 function RootLayoutNav() {
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, isLoggingOut } = useAuth();
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || isLoggingOut || !navigationState?.key) return;
 
     const inAuthGroup = segments[0] === "login" || segments[0] === "verify";
-    const inLandingPage = segments[0] === undefined || segments[0] === "";
+    const isRoot = pathname === "/" || pathname === "/index";
 
-    console.log("[Navigation] State - User:", !!user, "Role:", role, "Segments:", segments);
+    console.log(`[Nav] Sync - User: ${!!user}, Path: ${pathname}`);
 
     if (!user) {
-      if (!inLandingPage && !inAuthGroup) {
-        console.log("[Navigation] Redirecting to / (Not Logged In)");
+      if (!isRoot && !inAuthGroup) {
         router.replace("/");
       }
     } else if (role) {
-      if (inLandingPage || inAuthGroup) {
+      if (isRoot || inAuthGroup) {
         const dest = role === 'admin' ? "/(admin)" : role === 'superadmin' ? "/(superadmin)" : "/(tabs)";
-        console.log("[Navigation] Redirecting to:", dest);
         router.replace(dest as any);
       }
     }
-  }, [user, role, loading, segments]);
+  }, [user, role, loading, isLoggingOut, segments, pathname, navigationState?.key]);
+
+  if (loading || isLoggingOut) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#080808', alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#ff6b00" />
+      </View>
+    );
+  }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(admin)" />
+      <Stack.Screen name="(superadmin)" />
       <Stack.Screen name="login" options={{ presentation: 'modal' }} />
       <Stack.Screen name="verify" options={{ presentation: 'modal' }} />
     </Stack>

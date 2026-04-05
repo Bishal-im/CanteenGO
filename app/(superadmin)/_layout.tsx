@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from "expo-router";
-import { ShieldAlert, Users, Store, Loader2 } from "lucide-react-native";
+import { ShieldAlert, Users, Store, UserCircle, Loader2 } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
 
@@ -15,7 +15,7 @@ export default function SuperAdminLayout() {
   }
 
   if (!user || role !== 'superadmin') {
-    return <Redirect href="/" />;
+    return null;
   }
 
   return (
@@ -59,6 +59,13 @@ export default function SuperAdminLayout() {
         options={{
           title: "User Control",
           tabBarIcon: ({ color }) => <Users size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => <UserCircle size={24} color={color} />,
         }}
       />
     </Tabs>

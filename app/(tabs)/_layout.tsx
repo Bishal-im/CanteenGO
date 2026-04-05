@@ -15,7 +15,7 @@ export default function TabsLayout() {
   }
 
   if (!user || role !== 'customer') {
-    return null; // Let the root layout handle the redirect
+    return null;
   }
 
   return (

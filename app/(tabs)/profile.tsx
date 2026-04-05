@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { LogOut, User, Settings, Shield, ChevronRight, Mail, Home } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
@@ -13,13 +13,20 @@ export default function ProfileScreen() {
     if (authRole) setRole(authRole);
   }, [authRole]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm("Are you sure you want to log out?")) {
+        signOut();
+      }
+      return;
+    }
+
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Yes, Logout",
-        onPress: async () => {
-          await signOut();
+        onPress: () => {
+          signOut();
         }
       },
     ]);
@@ -52,6 +59,21 @@ export default function ProfileScreen() {
               <Text className="text-black font-black text-lg italic tracking-tighter">Admin Control</Text>
             </View>
             <ChevronRight size={20} color="black" strokeWidth={2.5} />
+          </TouchableOpacity>
+        )}
+
+        {role === "superadmin" && (
+          <TouchableOpacity
+            onPress={() => router.push("/(superadmin)")}
+            className="flex-row items-center justify-between p-6 bg-purple-600 h-20 rounded-3xl shadow-2xl shadow-purple-900/30 border border-white/10"
+          >
+            <View className="flex-row items-center gap-4">
+              <View className="w-10 h-10 rounded-xl bg-black/10 items-center justify-center border border-black/5">
+                <Shield size={20} color="white" strokeWidth={2.5} />
+              </View>
+              <Text className="text-white font-black text-lg italic tracking-tighter underline">SUPERADMIN CONSOLE</Text>
+            </View>
+            <ChevronRight size={20} color="white" strokeWidth={2.5} />
           </TouchableOpacity>
         )}
 
