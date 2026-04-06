@@ -45,12 +45,13 @@ exports.setupCanteenCode = async (req, res) => {
     const cafeteria = await Cafeteria.findOne({ adminId: req.user._id });
     if (!cafeteria) return res.status(404).json({ message: 'No cafeteria found for this admin' });
 
-    if (cafeteria.canteenCode) {
-      return res.status(400).json({ message: 'Canteen code is already set' });
-    }
-
     cafeteria.canteenCode = canteenCode.trim().toUpperCase();
     await cafeteria.save();
+
+    // Link cafeteria to the admin for easier access in menu lookups
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(req.user._id, { cafeteriaId: cafeteria._id });
+
     res.json({ message: 'Canteen code setup successful', cafeteria });
   } catch (error) {
     res.status(500).json({ message: error.message });

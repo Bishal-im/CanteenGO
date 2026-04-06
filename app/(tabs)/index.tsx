@@ -163,9 +163,12 @@ export default function MenuScreen() {
           ))}
 
           {menuItems.length === 0 && !loading && (
-             <View className="py-20 items-center justify-center opacity-40">
-               <Info size={64} color="#ff6b00" strokeWidth={2.5} />
-               <Text className="text-white font-black text-xl mt-4 italic">No items found.</Text>
+             <View className="py-20 items-center justify-center">
+               <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-4">
+                 <Info size={32} color="#ff6b00" strokeWidth={2.5} />
+               </View>
+               <Text className="text-white font-black text-xl mt-4 italic text-center">Fresh Menu Coming Soon! 🍳</Text>
+               <Text className="text-gray-500 font-medium text-xs mt-2 text-center">This canteen hasn't uploaded their menu yet.</Text>
              </View>
           )}
         </View>

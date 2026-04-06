@@ -6,8 +6,13 @@ exports.createOrder = async (req, res) => {
   try {
     const { items, total_amount, time_slot, payment_screenshot_url, remarks } = req.body;
     
+    if (!req.user.cafeteriaId) {
+      return res.status(400).json({ message: 'Please join a canteen first before ordering.' });
+    }
+
     const order = await Order.create({
       customer_id: req.user._id,
+      cafeteria_id: req.user.cafeteriaId,
       items,
       total_amount,
       time_slot,
@@ -15,8 +20,6 @@ exports.createOrder = async (req, res) => {
       remarks,
       status: 'pending'
     });
-
-
 
     res.status(201).json(order);
   } catch (error) {
@@ -35,11 +38,21 @@ exports.getMyOrders = async (req, res) => {
   }
 };
 
-// @desc    Get all orders (for admin)
+// @desc    Get all orders (for admin - filtered by cafeteria)
 // @route   GET /api/orders
 exports.getOrders = async (req, res) => {
   try {
-    const orders = await Order.find().populate('customer_id', 'name email').sort({ createdAt: -1 });
+    const Cafeteria = require('../models/Cafeteria');
+    const cafeteria = await Cafeteria.findOne({ adminId: req.user._id });
+    
+    if (!cafeteria) {
+      return res.json([]);
+    }
+
+    const orders = await Order.find({ cafeteria_id: cafeteria._id })
+      .populate('customer_id', 'name email faculty')
+      .sort({ createdAt: -1 });
+      
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
