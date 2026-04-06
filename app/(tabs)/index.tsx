@@ -1,9 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, TextInput } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, TextInput } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Search, ShoppingBag, Plus, Minus, Info, Utensils, ArrowRight } from "lucide-react-native";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { BlurView } from "expo-blur";
+import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import { SkeletonPulse } from "../../components/SkeletonPulse";
+import { GlassCard } from "../../components/GlassCard";
 
 interface MenuItem {
   id: string;
@@ -59,7 +63,7 @@ export default function MenuScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="px-6 pt-16 pb-8 bg-background/90 backdrop-blur-3xl border-b border-white/5">
+      <BlurView intensity={80} tint="dark" className="px-6 pt-16 pb-8 border-b border-white/5 z-10">
         <View className="flex-row justify-between items-center mb-10">
           <View>
             <Text className="text-[10px] font-black text-primary uppercase tracking-[4px]">CanteenGo Premium</Text>
@@ -67,7 +71,7 @@ export default function MenuScreen() {
           </View>
           <TouchableOpacity 
             onPress={() => router.push("/cart")}
-            className="w-12 h-12 rounded-2xl bg-card border border-primary/20 items-center justify-center relative shadow-2xl shadow-primary/10"
+            className="w-12 h-12 rounded-2xl bg-white/5 border border-primary/20 items-center justify-center relative shadow-2xl shadow-primary/10"
           >
             <ShoppingBag size={24} color="#ff6b00" strokeWidth={2.5} />
             {totalItems > 0 && (
@@ -78,7 +82,7 @@ export default function MenuScreen() {
           </TouchableOpacity>
         </View>
 
-        <View className="flex-row items-center bg-card border border-primary/10 rounded-3xl px-6 h-16 shadow-2xl relative overflow-hidden">
+        <View className="flex-row items-center bg-white/5 border border-white/10 rounded-3xl px-6 h-16 shadow-2xl relative overflow-hidden">
            <View className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12 blur-xl" />
           <Search size={22} color="#ff6b00" strokeWidth={2.5} />
           <TextInput
@@ -89,7 +93,7 @@ export default function MenuScreen() {
             className="flex-1 ml-4 text-white font-black italic text-lg tracking-tight"
           />
         </View>
-      </View>
+      </BlurView>
 
       <ScrollView className="flex-1 px-4">
         {!user?.cafeteriaId ? (
@@ -109,86 +113,132 @@ export default function MenuScreen() {
               <ArrowRight size={20} color="black" strokeWidth={3} />
             </TouchableOpacity>
           </View>
+        ) : loading ? (
+          <View className="py-8">
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} className="mb-4 p-5 bg-white/5 rounded-[32px] flex-row gap-5">
+                <SkeletonPulse width={112} height={112} borderRadius={24} />
+                <View className="flex-1 justify-center gap-3">
+                  <SkeletonPulse width="80%" height={24} />
+                  <SkeletonPulse width="50%" height={16} />
+                  <View className="flex-row justify-between items-center mt-2">
+                     <SkeletonPulse width={80} height={32} />
+                     <SkeletonPulse width={48} height={48} borderRadius={16} />
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
         ) : (
           <View className="py-8">
-          {menuItems.map((item) => (
-            <View key={item.id} className="mb-4 p-5 bg-card border border-primary/5 rounded-[32px] flex-row gap-5 shadow-2xl relative overflow-hidden">
-               <View className="absolute bottom-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mb-16 blur-2xl opacity-40" />
-              <View className="w-28 h-28 rounded-2xl bg-white/5 overflow-hidden border border-primary/10 items-center justify-center">
-                {item.image_url ? (
-                  <Image source={{ uri: item.image_url }} className="w-full h-full" />
-                ) : (
-                  <View className="w-full h-full items-center justify-center bg-primary/5">
-                    <ShoppingBag size={32} color="#ff6b00" strokeWidth={2.5} />
-                  </View>
-                )}
-              </View>
-
-              <View className="flex-1 justify-center">
-                <View className="mb-4">
-                  <Text className="text-2xl font-black text-white italic tracking-tighter leading-tight mb-1">{item.name}</Text>
-                  <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[2px] opacity-60" numberOfLines={2}>{item.description}</Text>
-                </View>
-
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-2xl font-black text-primary italic">Rs. {item.price}</Text>
-
-                  {cart[item.id] ? (
-                    <View className="flex-row items-center bg-white/5 rounded-2xl border border-primary/10 p-1">
-                       <TouchableOpacity 
-                        onPress={() => removeFromCart(item.id)} 
-                        className="w-10 h-10 items-center justify-center bg-white/5 rounded-xl border border-primary/20"
-                      >
-                        <Minus size={20} color="#ff6b00" strokeWidth={2.5} />
-                      </TouchableOpacity>
-                      <Text className="text-white font-black px-6 text-lg italic">{cart[item.id]}</Text>
-                       <TouchableOpacity 
-                        onPress={() => addToCart(item.id)} 
-                        className="w-10 h-10 items-center justify-center bg-white/5 border border-primary/20 rounded-xl"
-                      >
-                        <Plus size={20} color="#ff6b00" strokeWidth={2.5} />
-                      </TouchableOpacity>
+            {menuItems.map((item, index) => (
+              <Animated.View 
+                entering={FadeInDown.delay(index * 100).springify()}
+                key={item.id} 
+                className="mb-4"
+              >
+                <GlassCard containerStyle={{ borderRadius: 32 }}>
+                  <View className="flex-row gap-5 relative overflow-hidden">
+                    <View className="absolute bottom-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mb-16 blur-2xl opacity-40" />
+                    <View className="w-28 h-28 rounded-2xl bg-white/5 overflow-hidden border border-white/10 items-center justify-center">
+                      {item.image_url ? (
+                        <Image source={{ uri: item.image_url }} className="w-full h-full" />
+                      ) : (
+                        <View className="w-full h-full items-center justify-center bg-primary/5">
+                          <ShoppingBag size={32} color="#ff6b00" strokeWidth={2.5} />
+                        </View>
+                      )}
                     </View>
-                  ) : (
-                     <TouchableOpacity 
-                      onPress={() => addToCart(item.id)}
-                      className="w-12 h-12 rounded-2xl bg-white/5 border border-primary/20 items-center justify-center shadow-2xl shadow-primary/10 rotate-3"
-                    >
-                      <Plus size={24} color="#ff6b00" strokeWidth={2.5} />
-                    </TouchableOpacity>
-                  )}
-                </View>
-              </View>
-            </View>
-          ))}
 
-          {menuItems.length === 0 && !loading && (
-             <View className="py-20 items-center justify-center">
-               <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-4">
-                 <Info size={32} color="#ff6b00" strokeWidth={2.5} />
+                    <View className="flex-1 justify-center">
+                      <View className="mb-4">
+                        <Text className="text-2xl font-black text-white italic tracking-tighter leading-tight mb-1">{item.name}</Text>
+                        <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[2px] opacity-60" numberOfLines={2}>{item.description}</Text>
+                      </View>
+
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-2xl font-black text-primary italic">Rs. {item.price}</Text>
+
+                        {cart[item.id] ? (
+                          <View className="flex-row items-center bg-white/5 rounded-2xl border border-primary/10 p-1">
+                            <TouchableOpacity 
+                              onPress={() => removeFromCart(item.id)} 
+                              className="w-10 h-10 items-center justify-center bg-white/5 rounded-xl border border-primary/20"
+                            >
+                              <Minus size={20} color="#ff6b00" strokeWidth={2.5} />
+                            </TouchableOpacity>
+                            <Text className="text-white font-black px-6 text-lg italic">{cart[item.id]}</Text>
+                            <TouchableOpacity 
+                              onPress={() => addToCart(item.id)} 
+                              className="w-10 h-10 items-center justify-center bg-white/5 border border-primary/20 rounded-xl"
+                            >
+                              <Plus size={20} color="#ff6b00" strokeWidth={2.5} />
+                            </TouchableOpacity>
+                          </View>
+                        ) : (
+                          <TouchableOpacity 
+                            onPress={() => addToCart(item.id)}
+                            className="w-12 h-12 rounded-2xl bg-white/5 border border-primary/20 items-center justify-center shadow-2xl shadow-primary/10 rotate-3"
+                          >
+                            <Plus size={24} color="#ff6b00" strokeWidth={2.5} />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                </GlassCard>
+              </Animated.View>
+            ))}
+
+            {menuItems.length === 0 && !loading && (
+               <View className="py-20 items-center justify-center">
+                 <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-4">
+                   <Info size={32} color="#ff6b00" strokeWidth={2.5} />
+                 </View>
+                 <Text className="text-white font-black text-xl mt-4 italic text-center">Fresh Menu Coming Soon! 🍳</Text>
+                 <Text className="text-gray-500 font-medium text-xs mt-2 text-center">This canteen hasn't uploaded their menu yet.</Text>
                </View>
-               <Text className="text-white font-black text-xl mt-4 italic text-center">Fresh Menu Coming Soon! 🍳</Text>
-               <Text className="text-gray-500 font-medium text-xs mt-2 text-center">This canteen hasn't uploaded their menu yet.</Text>
-             </View>
-          )}
-        </View>
+            )}
+          </View>
         )}
       </ScrollView>
 
-      {/* Floating Checkout Button */}
-        <View className="absolute bottom-10 left-6 right-6">
+      {totalItems > 0 && (
+        <Animated.View 
+          entering={FadeInRight.delay(200).springify()}
+          className="absolute bottom-10 left-6 right-6"
+        >
           <TouchableOpacity 
-            className="bg-primary h-16 rounded-2xl flex-row items-center justify-between px-8 shadow-2xl shadow-primary/60"
+            onPress={() => router.push("/cart")}
+            className="flex-row items-center justify-between shadow-2xl shadow-primary/60"
             activeOpacity={0.9}
           >
-            <View className="flex-row items-center gap-3">
-              <View className="bg-black/10 px-2 py-1 rounded-md">
-                <Text className="text-black font-black text-[10px]">{totalItems} ITEMS</Text>
-              </View>
-            </View>
-            <Text className="text-black font-black text-lg uppercase tracking-widest italic">Proceed to Cart</Text>
+             <GlassCard 
+               intensity={100} 
+               borderRadius={24} 
+               style={{ 
+                 flexDirection: "row", 
+                 alignItems: "center", 
+                 justifyContent: "space-between", 
+                 width: "100%",
+                 paddingHorizontal: 32,
+                 height: 64,
+                 backgroundColor: "#ff6b00" 
+               }}
+             >
+                <View className="flex-row items-center gap-3">
+                  <View className="bg-black/20 px-3 py-1.5 rounded-lg border border-black/10">
+                    <Text className="text-black font-black text-[10px] tracking-widest">{totalItems} ITEMS</Text>
+                  </View>
+                </View>
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-black font-black text-lg uppercase tracking-widest italic">Checkout</Text>
+                  <ArrowRight size={20} color="black" strokeWidth={3} />
+                </View>
+             </GlassCard>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
+      )}
     </View>
   );
 }

@@ -70,8 +70,11 @@ export default function Scanner() {
       >
         <View style={styles.overlay}>
           <View style={styles.topBar}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-              <X color="#fff" size={24} />
+            <TouchableOpacity 
+              onPress={() => router.back()} 
+              style={[styles.iconBtn, { backgroundColor: 'rgba(255,107,0,0.2)', borderColor: '#ff6b0040', borderWidth: 1 }]}
+            >
+              <X color="#ff6b00" size={24} strokeWidth={3} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setTorch(!torch)} style={styles.iconBtn}>
               {torch ? <Zap color="#ff6b00" size={24} /> : <ZapOff color="#fff" size={24} />}

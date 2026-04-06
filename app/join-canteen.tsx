@@ -15,6 +15,7 @@ import { QrCode, ArrowRight, CheckCircle2, Search, X } from "lucide-react-native
 import { useAuth } from "../context/AuthContext";
 import { api } from "../lib/api";
 import Animated, { FadeInDown } from "react-native-reanimated";
+import { GlassCard } from "../components/GlassCard";
 
 export default function JoinCanteen() {
   const router = useRouter();
@@ -73,22 +74,22 @@ export default function JoinCanteen() {
 
         <Animated.View entering={FadeInDown.delay(200).duration(500)} style={styles.inputSection}>
           <Text style={styles.label}>CANTEEN CODE</Text>
-          <View style={styles.inputWrap}>
-            <Search size={20} color="#555" style={styles.inputIcon} />
+          <GlassCard borderRadius={20} intensity={40} containerStyle={{ backgroundColor: '#111' }} style={{ padding: 0, height: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
+            <Search size={20} color="#ff6b00" strokeWidth={2.5} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { height: '100%', marginBottom: 0 }]}
               placeholder="e.g. CAFE123"
               placeholderTextColor="#444"
               value={canteenCode}
               onChangeText={setCanteenCode}
               autoCapitalize="characters"
             />
-          </View>
+          </GlassCard>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(300).duration(500)} style={styles.actions}>
           <TouchableOpacity
-            style={[styles.ctaBtn, loading && styles.ctaBtnLoading]}
+            style={[styles.ctaBtn, loading && styles.ctaBtnLoading, { shadowColor: '#ff6b00', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.4, shadowRadius: 20, elevation: 10 }]}
             onPress={handleJoin}
             disabled={loading}
           >
@@ -109,11 +110,11 @@ export default function JoinCanteen() {
           </View>
 
           <TouchableOpacity
-            style={styles.scanBtn}
+            style={[styles.scanBtn, { backgroundColor: '#ff6b0010' }]}
             onPress={() => router.push("/scanner")}
             disabled={loading}
           >
-            <QrCode size={24} color="#ff6b00" />
+            <QrCode size={24} color="#ff6b00" strokeWidth={2.5} />
             <Text style={styles.scanBtnText}>Scan Canteen QR</Text>
           </TouchableOpacity>
         </Animated.View>

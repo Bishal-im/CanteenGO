@@ -1,9 +1,13 @@
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert, Modal } from "react-native";
 import { useState, useEffect } from "react";
-import { Package, Plus, Edit2, Trash2, CheckCircle, XCircle, X, DollarSign, Image as ImageIcon, Camera, Upload } from "lucide-react-native";
+import { Package, Plus, Edit2, Trash2, CheckCircle, XCircle, X, DollarSign, Image as ImageIcon, Camera, Upload, Loader2 } from "lucide-react-native";
 import * as ImagePicker from 'expo-image-picker';
 import { api } from "../../lib/api";
 import { Platform } from "react-native";
+import { BlurView } from "expo-blur";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SkeletonPulse } from "../../components/SkeletonPulse";
+import { GlassCard } from "../../components/GlassCard";
 
 interface MenuItem {
   id: string;
@@ -140,55 +144,75 @@ export default function ManageMenu() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="px-6 pt-16 pb-8 bg-background border-b border-white/5 flex-row justify-between items-center">
+      <BlurView intensity={80} tint="dark" className="px-6 pt-16 pb-8 border-b border-white/5 flex-row justify-between items-center z-10">
         <View>
           <Text className="text-[10px] font-black text-primary uppercase tracking-[3px]">Inventory Hub</Text>
           <Text className="text-3xl font-black text-white tracking-tighter italic">Manage Menu</Text>
         </View>
         <TouchableOpacity 
           onPress={() => { setEditingItem(null); setFormData({ name: "", description: "", price: "", image_url: "", is_available: true }); setSelectedImage(null); setModalVisible(true); }}
-          className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/20 shadow-2xl shadow-primary/10 rotate-6"
+          className="w-12 h-12 rounded-2xl bg-primary items-center justify-center border border-primary/20 shadow-2xl shadow-primary/40 rotate-6"
         >
-          <Plus size={28} color="#ff6b00" strokeWidth={2.5} />
+          <Plus size={28} color="black" strokeWidth={3} />
         </TouchableOpacity>
-      </View>
+      </BlurView>
 
       <ScrollView className="flex-1 px-4">
         <View className="py-8">
-          {items.map((item) => (
-            <View key={item.id} className="mb-6 p-6 bg-card border border-white/5 rounded-[48px] flex-row gap-6 items-center shadow-2xl relative overflow-hidden">
-               <View className="absolute top-0 left-0 w-2 h-full bg-primary/20" />
-              <View className="w-20 h-20 rounded-3xl bg-white/5 shadow-inner overflow-hidden border border-white/5">
-                {item.image_url ? (
-                  <Image source={{ uri: item.image_url }} className="w-full h-full" />
-                ) : (
-                  <View className="w-full h-full items-center justify-center opacity-20">
-                    <Package size={28} color="#ff6b00" strokeWidth={2.5} />
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <View key={i} className="mb-6 p-6 bg-white/5 rounded-[48px] flex-row gap-6 items-center">
+                 <SkeletonPulse width={80} height={80} borderRadius={24} />
+                 <View className="flex-1 gap-3">
+                    <SkeletonPulse width="60%" height={20} />
+                    <SkeletonPulse width="40%" height={14} />
+                 </View>
+              </View>
+            ))
+          ) : (
+            items.map((item, index) => (
+              <Animated.View 
+                entering={FadeInDown.delay(index * 100).springify()}
+                key={item.id} 
+                className="mb-6"
+              >
+                <GlassCard containerStyle={{ borderRadius: 48 }}>
+                  <View className="flex-row gap-6 items-center relative overflow-hidden">
+                    <View className="absolute top-0 left-0 w-2 h-full bg-primary/20" />
+                    <View className="w-20 h-20 rounded-3xl bg-white/5 shadow-inner overflow-hidden border border-white/5">
+                      {item.image_url ? (
+                        <Image source={{ uri: item.image_url }} className="w-full h-full" />
+                      ) : (
+                        <View className="w-full h-full items-center justify-center opacity-20">
+                          <Package size={28} color="#ff6b00" strokeWidth={2.5} />
+                        </View>
+                      )}
+                    </View>
+
+                    <View className="flex-1">
+                      <Text className="text-xl font-black text-white tracking-tight italic" numberOfLines={1}>{item.name}</Text>
+                      <Text className="text-primary font-black text-xs tracking-widest uppercase mt-1">Rs. {item.price}</Text>
+                    </View>
+
+                    <View className="flex-row gap-3">
+                      <TouchableOpacity 
+                        onPress={() => toggleAvailability(item.id, item.is_available)}
+                        className={`w-12 h-12 rounded-2xl items-center justify-center shadow-sm ${item.is_available ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}
+                      >
+                        <CheckCircle size={24} color={item.is_available ? "#22c55e" : "#ef4444"} strokeWidth={2.5} />
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        onPress={() => { setEditingItem(item); setFormData({ ...item, price: String(item.price) }); setModalVisible(true); }}
+                        className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/10 shadow-inner"
+                      >
+                        <Edit2 size={24} color="#ff6b00" strokeWidth={2.5} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                )}
-              </View>
-
-              <View className="flex-1">
-                <Text className="text-xl font-black text-white tracking-tight italic">{item.name}</Text>
-                <Text className="text-primary font-black text-xs tracking-widest uppercase mt-1">Rs. {item.price}</Text>
-              </View>
-
-              <View className="flex-row gap-3">
-                <TouchableOpacity 
-                  onPress={() => toggleAvailability(item.id, item.is_available)}
-                  className={`w-12 h-12 rounded-2xl items-center justify-center shadow-sm ${item.is_available ? "bg-green-500/10 border border-green-500/30" : "bg-red-500/10 border border-red-500/30"}`}
-                >
-                  <CheckCircle size={24} color={item.is_available ? "#22c55e" : "#ef4444"} strokeWidth={2.5} />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  onPress={() => { setEditingItem(item); setFormData({ ...item, price: String(item.price) }); setModalVisible(true); }}
-                  className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/10 shadow-inner"
-                >
-                  <Edit2 size={24} color="#ff6b00" strokeWidth={2.5} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
+                </GlassCard>
+              </Animated.View>
+            ))
+          )}
         </View>
       </ScrollView>
 
@@ -277,13 +301,23 @@ export default function ManageMenu() {
             <TouchableOpacity 
               onPress={handleSave}
               disabled={uploading}
-              className={`h-20 bg-primary rounded-3xl items-center justify-center mt-12 shadow-2xl shadow-primary/40 ${uploading ? "opacity-50" : ""}`}
+              className={`h-20 bg-primary rounded-[32px] items-center justify-center mt-12 shadow-2xl shadow-primary/40 flex-row gap-4 ${uploading ? "opacity-50" : ""}`}
             >
                {uploading ? (
                   <Loader2 size={24} color="black" className="animate-spin" />
                ) : (
-                  <Text className="text-black font-black text-xl uppercase tracking-widest">Seal Entry</Text>
+                 <>
+                  <Text className="text-black font-black text-xl uppercase tracking-widest italic">{editingItem ? "Update dish" : "Add to menu"}</Text>
+                  <CheckCircle size={24} color="black" strokeWidth={3} />
+                 </>
                )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => { setModalVisible(false); setSelectedImage(null); }}
+              className="mt-4 items-center"
+            >
+               <Text className="text-gray-500 font-black text-[10px] uppercase tracking-[3px]">Discard Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
