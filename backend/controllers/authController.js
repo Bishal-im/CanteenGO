@@ -59,7 +59,7 @@ exports.getProfile = async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ message: 'User object not found in request' });
     }
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id).select('-password').populate('cafeteriaId', 'name canteenCode');
     if (user) {
       // Issue separate secure cookies based on role
       const isPrivileged = user.role === 'admin' || user.role === 'superadmin';
@@ -77,12 +77,32 @@ exports.getProfile = async (req, res) => {
         console.log(`[Auth] Issued ${cookieName} cookie for ${user.email}`);
       }
 
-      res.json(user);
+    res.json(user);
     } else {
       res.status(404).json({ message: 'User not found in database' });
     }
   } catch (error) {
     console.error('[Controller] Profile error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, faculty } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (name) user.name = name;
+    if (faculty) user.faculty = faculty;
+    
+    // Mark profile as complete if name is provided (minimum requirement)
+    if (user.name) user.isProfileComplete = true;
+
+    await user.save();
+    res.json(user);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, verifyOtp, login, getProfile, logout, getStats, getUsers, updateUserRole, addAdmin, getAdmins, removeAdmin } = require('../controllers/authController');
+const { register, verifyOtp, login, getProfile, updateProfile, logout, getStats, getUsers, updateUserRole, addAdmin, getAdmins, removeAdmin } = require('../controllers/authController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -11,6 +11,7 @@ const superadmin = (req, res, next) => {
 
 // Auth Routes
 router.get('/profile', protect, getProfile);
+router.put('/profile', protect, updateProfile);
 router.post('/logout', protect, logout);
 router.get('/stats', protect, admin, getStats);
 router.get('/users', protect, admin, getUsers);

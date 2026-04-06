@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['customer', 'admin', 'superadmin'], default: 'customer' },
+  faculty: { type: String },
+  cafeteriaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cafeteria' },
+  isProfileComplete: { type: Boolean, default: false },
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {

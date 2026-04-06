@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, FlatList, TextInput } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { Search, ShoppingBag, Plus, Minus, Info } from "lucide-react-native";
+import { Search, ShoppingBag, Plus, Minus, Info, Utensils, ArrowRight } from "lucide-react-native";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -92,7 +92,25 @@ export default function MenuScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4">
-        <View className="py-8">
+        {!user?.cafeteriaId ? (
+          <View className="py-20 px-10 items-center justify-center">
+            <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-8 border border-primary/20">
+              <Utensils size={48} color="#ff6b00" strokeWidth={1.5} />
+            </View>
+            <Text className="text-3xl font-black text-white text-center italic tracking-tighter mb-4">You haven't joined a canteen yet!</Text>
+            <Text className="text-gray-500 text-center font-medium leading-6 mb-10">
+              Join a canteen to see their fresh menu, daily specials, and start pre-ordering your favorites.
+            </Text>
+            <TouchableOpacity 
+              onPress={() => router.push("/join-canteen")}
+              className="w-full h-16 bg-primary rounded-2xl flex-row items-center justify-center gap-3 shadow-2xl shadow-primary/40"
+            >
+              <Text className="text-black font-black text-lg uppercase tracking-widest italic">Join Canteen Now</Text>
+              <ArrowRight size={20} color="black" strokeWidth={3} />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View className="py-8">
           {menuItems.map((item) => (
             <View key={item.id} className="mb-4 p-5 bg-card border border-primary/5 rounded-[32px] flex-row gap-5 shadow-2xl relative overflow-hidden">
                <View className="absolute bottom-0 right-0 w-32 h-32 bg-primary/10 rounded-full -mr-16 -mb-16 blur-2xl opacity-40" />
@@ -151,6 +169,7 @@ export default function MenuScreen() {
              </View>
           )}
         </View>
+        )}
       </ScrollView>
 
       {/* Floating Checkout Button */}

@@ -7,6 +7,9 @@ interface User {
   name: string;
   email: string;
   role: string;
+  isProfileComplete?: boolean;
+  cafeteriaId?: any; // Can be string or populated object { _id, name, canteenCode }
+  faculty?: string;
 }
 
 interface AuthContextType {

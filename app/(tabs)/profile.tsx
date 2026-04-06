@@ -1,131 +1,197 @@
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert, Platform } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Alert, Platform, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { LogOut, User, Settings, Shield, ChevronRight, Mail, Home } from "lucide-react-native";
+import { LogOut, User as UserIcon, Settings, Shield, ChevronRight, Mail, Utensils, School, RefreshCw } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
-import { useState, useEffect } from "react";
+import { api } from "../../lib/api";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
 export default function ProfileScreen() {
-  const { user, role: authRole, signOut } = useAuth();
+  const { user, role, signOut, refreshProfile } = useAuth();
   const router = useRouter();
-  const [role, setRole] = useState<string>("customer");
-
-  useEffect(() => {
-    if (authRole) setRole(authRole);
-  }, [authRole]);
 
   const handleSignOut = () => {
-    if (Platform.OS === 'web') {
-      if (window.confirm("Are you sure you want to log out?")) {
-        signOut();
-      }
-      return;
-    }
-
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      {
-        text: "Yes, Logout",
-        onPress: () => {
-          signOut();
-        }
-      },
+      { text: "Yes, Logout", onPress: () => signOut() },
     ]);
   };
 
+  const handleChangeCanteen = () => {
+    Alert.alert(
+      "Change Canteen",
+      "Are you sure you want to change your linked canteen? You will need to enter a new code to see a different menu.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Change",
+          onPress: async () => {
+            try {
+              // We could have a backend endpoint to "leave" or just clear it here
+              // For now, we'll just navigate them back to join-canteen if we clear local state or if backend supports it.
+              // A simple way is to update user with cafeteriaId: null
+              await api.put("/auth/profile", { cafeteriaId: null });
+              await refreshProfile();
+              // _layout.tsx will handle the redirect to /join-canteen
+            } catch (err) {
+              Alert.alert("Error", "Failed to change canteen.");
+            }
+          }
+        },
+      ]
+    );
+  };
+
   return (
-    <ScrollView className="flex-1 bg-background px-6">
-      <View className="pt-20 pb-12 items-center">
-        <View className="w-24 h-24 rounded-[32px] bg-white/5 border border-primary/20 overflow-hidden items-center justify-center mb-6 shadow-2xl shadow-primary/10 rotate-3">
-          <View className="absolute top-0 left-0 w-12 h-12 bg-primary/10 rounded-full -ml-4 -mt-4 blur-xl" />
-          <User size={48} color="#ff6b00" strokeWidth={2.5} />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header / Avatar */}
+      <View style={styles.header}>
+        <View style={styles.avatarWrap}>
+          <UserIcon size={40} color="#ff6b00" strokeWidth={2.5} />
         </View>
-        <Text className="text-3xl font-black text-white italic tracking-tighter uppercase">{user?.email?.split('@')[0]}</Text>
-        <View className="flex-row items-center gap-3 mt-4 px-6 py-2 rounded-full bg-card border border-primary/20 shadow-xl">
-          <Shield size={14} color="#ff6b00" strokeWidth={2.5} />
-          <Text className="text-[12px] text-primary font-black uppercase tracking-[4px]">{role}</Text>
+        <Text style={styles.userName}>{user?.name || "User"}</Text>
+        <View style={styles.roleBadge}>
+          <Shield size={12} color="#ff6b00" />
+          <Text style={styles.roleText}>{role?.toUpperCase()}</Text>
         </View>
       </View>
 
-      <View className="space-y-4">
-        {role === "admin" && (
-          <TouchableOpacity
-            onPress={() => router.push("/(admin)")}
-            className="flex-row items-center justify-between p-6 bg-primary h-20 rounded-3xl shadow-2xl shadow-primary/30 border border-white/10"
-          >
-            <View className="flex-row items-center gap-4">
-              <View className="w-10 h-10 rounded-xl bg-black/10 items-center justify-center border border-black/5">
-                <Shield size={20} color="black" strokeWidth={2.5} />
-              </View>
-              <Text className="text-black font-black text-lg italic tracking-tighter">Admin Control</Text>
-            </View>
-            <ChevronRight size={20} color="black" strokeWidth={2.5} />
-          </TouchableOpacity>
-        )}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>ACCOUNT DETAILS</Text>
+        
+        {/* Email */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoIcon}>
+            <Mail size={20} color="#ff6b00" />
+          </View>
+          <View>
+            <Text style={styles.infoLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.infoValue}>{user?.email}</Text>
+          </View>
+        </View>
 
-        {role === "superadmin" && (
-          <TouchableOpacity
-            onPress={() => router.push("/(superadmin)")}
-            className="flex-row items-center justify-between p-6 bg-purple-600 h-20 rounded-3xl shadow-2xl shadow-purple-900/30 border border-white/10"
-          >
-            <View className="flex-row items-center gap-4">
-              <View className="w-10 h-10 rounded-xl bg-black/10 items-center justify-center border border-black/5">
-                <Shield size={20} color="white" strokeWidth={2.5} />
-              </View>
-              <Text className="text-white font-black text-lg italic tracking-tighter underline">SUPERADMIN CONSOLE</Text>
-            </View>
-            <ChevronRight size={20} color="white" strokeWidth={2.5} />
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity className="flex-row items-center justify-between p-6 bg-card border border-primary/5 rounded-3xl shadow-xl shadow-primary/5">
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-primary/20">
-              <Mail size={20} color="#ff6b00" strokeWidth={2.5} />
+        {/* Faculty */}
+        {user?.faculty && (
+          <View style={styles.infoCard}>
+            <View style={styles.infoIcon}>
+              <School size={20} color="#ff6b00" />
             </View>
             <View>
-              <Text className="text-gray-600 text-[9px] font-black uppercase tracking-[3px] mb-0.5">Email Terminal</Text>
-              <Text className="text-white font-black text-base italic">{user?.email}</Text>
+              <Text style={styles.infoLabel}>FACULTY / DEPT</Text>
+              <Text style={styles.infoValue}>{user.faculty}</Text>
             </View>
           </View>
-        </TouchableOpacity>
+        )}
 
-        <TouchableOpacity className="flex-row items-center justify-between p-6 bg-card border border-primary/5 rounded-3xl shadow-xl shadow-primary/5">
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-primary/20">
-              <Settings size={20} color="#ff6b00" strokeWidth={2.5} />
+        {/* Current Canteen */}
+        {user?.role === 'customer' && (
+          <View style={[styles.infoCard, { borderBottomWidth: 0 }]}>
+            <View style={styles.infoIcon}>
+              <Utensils size={20} color="#ff6b00" />
             </View>
-            <Text className="text-white font-black text-lg italic tracking-tighter">Preferences</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoLabel}>LINKED CANTEEN</Text>
+              <Text style={styles.infoValue}>{user.cafeteriaId?.name || "None"}</Text>
+              {user.cafeteriaId?.canteenCode && (
+                <Text style={styles.subInfo}>Code: {user.cafeteriaId.canteenCode}</Text>
+              )}
+            </View>
+            <TouchableOpacity style={styles.changeBtn} onPress={handleChangeCanteen}>
+              <RefreshCw size={16} color="#ff6b00" />
+            </TouchableOpacity>
           </View>
-          <ChevronRight size={20} color="#444" strokeWidth={2.5} />
-        </TouchableOpacity>
+        )}
+      </View>
 
-        <TouchableOpacity
-          onPress={() => router.replace("/")}
-          className="flex-row items-center justify-between p-6 bg-card border border-primary/5 rounded-3xl shadow-xl shadow-primary/5"
-        >
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl bg-white/5 items-center justify-center border border-primary/20">
-              <Home size={20} color="#ff6b00" strokeWidth={2.5} />
-            </View>
-            <Text className="text-white font-black text-lg italic tracking-tighter">Exit to Bistro</Text>
-          </View>
-          <ChevronRight size={20} color="#444" strokeWidth={2.5} />
-        </TouchableOpacity>
+      {/* Admin Specific */}
+      {(role === 'admin' || role === 'superadmin') && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>MANAGEMENT</Text>
+          <TouchableOpacity 
+            style={styles.menuItem} 
+            onPress={() => router.push(role === 'admin' ? "/(admin)" : "/(superadmin)")}
+          >
+            <Shield size={20} color="#ff6b00" />
+            <Text style={styles.menuItemText}>Dashboard Access</Text>
+            <ChevronRight size={20} color="#444" />
+          </TouchableOpacity>
+        </View>
+      )}
 
-        <TouchableOpacity
-          onPress={handleSignOut}
-          className="flex-row items-center justify-between p-6 bg-red-500/5 border border-red-500/10 rounded-3xl mt-10"
-        >
-          <View className="flex-row items-center gap-4">
-            <View className="w-10 h-10 rounded-xl bg-red-500/10 items-center justify-center">
-              <LogOut size={20} color="#ef4444" strokeWidth={2.5} />
-            </View>
-            <Text className="text-red-500 font-black text-lg italic tracking-tighter uppercase">Sign Out</Text>
-          </View>
+      {/* Settings / Others */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>OTHERS</Text>
+        <TouchableOpacity style={styles.menuItem}>
+          <Settings size={20} color="#ff6b00" />
+          <Text style={styles.menuItemText}>Notification Settings</Text>
+          <ChevronRight size={20} color="#444" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={[styles.menuItem, styles.logoutBtn]} onPress={handleSignOut}>
+          <LogOut size={20} color="#ef4444" />
+          <Text style={[styles.menuItemText, { color: "#ef4444" }]}>Sign Out</Text>
         </TouchableOpacity>
       </View>
 
-      <View className="h-20" />
+      <View style={{ height: 100 }} />
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#080808", paddingHorizontal: 24 },
+  header: { alignItems: "center", paddingTop: 60, marginBottom: 40 },
+  avatarWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "#111",
+    borderWidth: 1,
+    borderColor: "#ff6b0030",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  userName: { fontSize: 24, fontWeight: "900", color: "#fff", letterSpacing: -0.5 },
+  roleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#ff6b0010",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#ff6b0020",
+  },
+  roleText: { color: "#ff6b00", fontSize: 10, fontWeight: "900", letterSpacing: 1 },
+  section: { marginBottom: 32 },
+  sectionTitle: { fontSize: 10, fontWeight: "900", color: "#444", letterSpacing: 2, marginBottom: 16 },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0d0d0d",
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    marginBottom: 12,
+  },
+  infoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#ff6b0010", alignItems: "center", justify: "center", marginRight: 16 },
+  infoLabel: { fontSize: 9, fontWeight: "900", color: "#555", letterSpacing: 2, marginBottom: 4 },
+  infoValue: { fontSize: 15, fontWeight: "700", color: "#fff" },
+  subInfo: { fontSize: 12, color: "#666", marginTop: 2, fontWeight: "600" },
+  changeBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: "#ff6b0015", alignItems: "center", justifyContent: "center" },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#0d0d0d",
+    padding: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#1a1a1a",
+    marginBottom: 10,
+  },
+  menuItemText: { flex: 1, color: "#fff", fontSize: 15, fontWeight: "700", marginLeft: 16 },
+  logoutBtn: { borderColor: "#ef444420", backgroundColor: "#ef444405" },
+});

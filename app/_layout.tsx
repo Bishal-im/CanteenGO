@@ -30,9 +30,25 @@ function RootLayoutNav() {
         router.replace("/");
       }
     } else if (role) {
-      if (isRoot || inAuthGroup) {
-        const dest = role === 'admin' ? "/(admin)" : role === 'superadmin' ? "/(superadmin)" : "/(tabs)";
-        router.replace(dest as any);
+      const inAuthGroup = segments[0] === "login" || segments[0] === "verify";
+      const inOnboardingGroup = segments[0] === "complete-profile" || segments[0] === "join-canteen" || segments[0] === "scanner";
+
+      if (role === 'customer') {
+        if (!user.isProfileComplete) {
+          if (pathname !== "/complete-profile") {
+            console.log("[Nav] Redirecting to complete-profile");
+            router.replace("/complete-profile");
+          }
+        } else if (isRoot || inAuthGroup || inOnboardingGroup) {
+          console.log("[Nav] User setup complete. Redirecting to tabs.");
+          router.replace("/(tabs)");
+        }
+      } else {
+        // Admin / SuperAdmin logic
+        if (isRoot || inAuthGroup) {
+          const dest = role === 'admin' ? "/(admin)" : "/(superadmin)";
+          router.replace(dest as any);
+        }
       }
     }
   }, [user, role, loading, isLoggingOut, segments, pathname, navigationState?.key]);
@@ -53,6 +69,9 @@ function RootLayoutNav() {
       <Stack.Screen name="(superadmin)" />
       <Stack.Screen name="login" options={{ presentation: 'modal' }} />
       <Stack.Screen name="verify" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="complete-profile" />
+      <Stack.Screen name="join-canteen" />
+      <Stack.Screen name="scanner" options={{ presentation: 'fullScreenModal' }} />
     </Stack>
   );
 }

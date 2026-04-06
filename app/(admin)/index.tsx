@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, Image, Modal, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
-import { Clock, Check, X, Eye, Bell, CheckCircle2, Loader2, ArrowLeft } from "lucide-react-native";
+import { Clock, Check, X, Eye, Bell, CheckCircle2, Loader2, ArrowLeft, QrCode } from "lucide-react-native";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 
@@ -85,6 +85,25 @@ export default function AdminDashboard() {
 
       <ScrollView className="flex-1 px-4">
         <View className="py-8">
+          {/* Quick Actions / QR Shortcut */}
+          <TouchableOpacity 
+            onPress={() => router.push("/(admin)/qr")}
+            className="mb-8 p-8 bg-primary rounded-[40px] flex-row items-center justify-between shadow-2xl shadow-primary/40"
+          >
+            <View className="flex-row items-center gap-5">
+              <View className="w-14 h-14 rounded-2xl bg-black/10 items-center justify-center border border-black/5">
+                <QrCode size={28} color="black" strokeWidth={2.5} />
+              </View>
+              <View>
+                <Text className="text-black font-black text-xl italic tracking-tighter">Joining Setup</Text>
+                <Text className="text-black/50 text-[10px] font-black uppercase tracking-widest mt-1">QR & Code Terminal</Text>
+              </View>
+            </View>
+            <View className="w-10 h-10 rounded-full bg-black/10 items-center justify-center">
+              <Check size={20} color="black" strokeWidth={3} />
+            </View>
+          </TouchableOpacity>
+
           {orders.map((order) => (
             <View key={order.id} className="mb-4 p-6 bg-card border border-primary/10 rounded-[32px] shadow-2xl relative overflow-hidden">
                <View className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12 blur-xl" />

@@ -1,5 +1,5 @@
 import { Tabs, Redirect } from "expo-router";
-import { LayoutDashboard, ClipboardList, Package, UserCircle, Loader2 } from "lucide-react-native";
+import { LayoutDashboard, ClipboardList, Package, UserCircle, Loader2, QrCode } from "lucide-react-native";
 import { useAuth } from "../../context/AuthContext";
 import { View } from "react-native";
 
@@ -57,8 +57,15 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="manage"
         options={{
-          title: "Manage Menu",
+          title: "Menu",
           tabBarIcon: ({ color }) => <Package size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="qr"
+        options={{
+          title: "Join QR",
+          tabBarIcon: ({ color }) => <QrCode size={24} color={color} />,
         }}
       />
       <Tabs.Screen
