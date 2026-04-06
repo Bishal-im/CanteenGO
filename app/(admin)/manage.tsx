@@ -1,7 +1,9 @@
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Image, Alert, Modal } from "react-native";
 import { useState, useEffect } from "react";
-import { Package, Plus, Edit2, Trash2, CheckCircle, XCircle, X, DollarSign, Image as ImageIcon } from "lucide-react-native";
+import { Package, Plus, Edit2, Trash2, CheckCircle, XCircle, X, DollarSign, Image as ImageIcon, Camera, Upload } from "lucide-react-native";
+import * as ImagePicker from 'expo-image-picker';
 import { api } from "../../lib/api";
+import { Platform } from "react-native";
 
 interface MenuItem {
   id: string;
@@ -18,6 +20,8 @@ export default function ManageMenu() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [formData, setFormData] = useState({ name: "", description: "", price: "", image_url: "", is_available: true });
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchItems = async () => {
     try {
@@ -35,6 +39,43 @@ export default function ManageMenu() {
     setLoading(false);
   };
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Please allow access to your gallery to upload photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Please allow camera access to take photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
   useEffect(() => {
     fetchItems();
   }, []);
@@ -45,22 +86,46 @@ export default function ManageMenu() {
       return;
     }
 
-    const payload = { ...formData, price: Number(formData.price) };
+    setUploading(true);
+    const data = new FormData();
+    data.append('name', formData.name);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('is_available', String(formData.is_available));
+
+    if (selectedImage) {
+      const uri = selectedImage;
+      const filename = uri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename || '');
+      const type = match ? `image/${match[1] === 'jpg' ? 'jpeg' : match[1]}` : `image`;
+      
+      // Axios in React Native needs this object for multipart/form-data
+      data.append('image', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+    }
 
     try {
       if (editingItem) {
-        await api.put(`/menu/${editingItem.id}`, payload);
+        await api.put(`/menu/${editingItem.id}`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         Alert.alert("Updated", "Item updated successfully.");
       } else {
-        // Backend handles creating/uploading. 
-        // For simplicity, we just send JSON here as the UI doesn't have an image picker yet.
-        await api.post("/menu", payload);
+        await api.post("/menu", data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
         Alert.alert("Success", "New item created!");
       }
       fetchItems();
       setModalVisible(false);
+      setSelectedImage(null);
     } catch (error: any) {
       Alert.alert("Error", error.response?.data?.message || error.message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -81,7 +146,7 @@ export default function ManageMenu() {
           <Text className="text-3xl font-black text-white tracking-tighter italic">Manage Menu</Text>
         </View>
         <TouchableOpacity 
-          onPress={() => { setEditingItem(null); setFormData({ name: "", description: "", price: "", image_url: "", is_available: true }); setModalVisible(true); }}
+          onPress={() => { setEditingItem(null); setFormData({ name: "", description: "", price: "", image_url: "", is_available: true }); setSelectedImage(null); setModalVisible(true); }}
           className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/20 shadow-2xl shadow-primary/10 rotate-6"
         >
           <Plus size={28} color="#ff6b00" strokeWidth={2.5} />
@@ -130,13 +195,48 @@ export default function ManageMenu() {
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View className="flex-1 bg-background p-8">
-          <View className="flex-row justify-between items-center mb-10">
+          <View className="flex-row justify-between items-center mb-6">
             <Text className="text-3xl font-black text-white tracking-tighter italic">
               {editingItem ? "Edit Entry" : "New Entry"}
             </Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/10 shadow-sm">
+            <TouchableOpacity onPress={() => { setModalVisible(false); setSelectedImage(null); }} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/10 shadow-sm">
               <X size={24} color="#ff6b00" strokeWidth={2.5} />
             </TouchableOpacity>
+          </View>
+
+          {/* Image Picker Section */}
+          <View className="items-center mb-10">
+             <View className="w-40 h-40 rounded-[48px] bg-muted border border-white/5 overflow-hidden shadow-2xl relative">
+                {(selectedImage || formData.image_url) ? (
+                   <Image source={{ uri: selectedImage || formData.image_url }} className="w-full h-full" />
+                ) : (
+                   <View className="w-full h-full items-center justify-center">
+                      <ImageIcon size={48} color="#222" strokeWidth={1} />
+                   </View>
+                )}
+                {selectedImage && (
+                   <View className="absolute top-2 right-2 bg-primary rounded-full p-1 border-2 border-background">
+                      <CheckCircle size={14} color="black" strokeWidth={3} />
+                   </View>
+                )}
+             </View>
+             
+             <View className="flex-row gap-4 mt-6">
+                <TouchableOpacity 
+                  onPress={takePhoto}
+                  className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
+                >
+                  <Camera size={18} color="#ff6b00" strokeWidth={2.5} />
+                  <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Camera</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={pickImage}
+                  className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
+                >
+                  <Upload size={18} color="#ff6b00" strokeWidth={2.5} />
+                  <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Gallery</Text>
+                </TouchableOpacity>
+             </View>
           </View>
 
           <View className="space-y-8">
@@ -176,9 +276,14 @@ export default function ManageMenu() {
 
             <TouchableOpacity 
               onPress={handleSave}
-              className="h-20 bg-primary rounded-3xl items-center justify-center mt-12 shadow-2xl shadow-primary/40"
+              disabled={uploading}
+              className={`h-20 bg-primary rounded-3xl items-center justify-center mt-12 shadow-2xl shadow-primary/40 ${uploading ? "opacity-50" : ""}`}
             >
-              <Text className="text-black font-black text-xl uppercase tracking-widest">Seal Entry</Text>
+               {uploading ? (
+                  <Loader2 size={24} color="black" className="animate-spin" />
+               ) : (
+                  <Text className="text-black font-black text-xl uppercase tracking-widest">Seal Entry</Text>
+               )}
             </TouchableOpacity>
           </View>
         </View>
