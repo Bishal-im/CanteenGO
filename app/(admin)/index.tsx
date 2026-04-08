@@ -110,10 +110,10 @@ export default function AdminDashboard() {
                     <SkeletonPulse width={60} height={24} borderRadius={10} />
                  </View>
                  <SkeletonPulse width="60%" height={32} />
-                 <div className="flex-row gap-2 mt-2">
+                 <View className="flex-row gap-2 mt-2">
                     <SkeletonPulse width="45%" height={48} borderRadius={12} />
                     <SkeletonPulse width="45%" height={48} borderRadius={12} />
-                 </div>
+                 </View>
               </View>
             ))
           ) : (

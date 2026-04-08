@@ -71,7 +71,28 @@ exports.createMenuItem = async (req, res) => {
 // @route   PUT /api/menu/:id
 exports.updateMenuItem = async (req, res) => {
   try {
-    const item = await MenuItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { name, price, category, description, is_available } = req.body;
+    let updateData = { name, price, category, description, is_available };
+
+    // Handle image upload if a new file is provided
+    if (req.file) {
+      updateData.image_url = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream({ folder: 'canteengo/menu' }, (error, result) => {
+          if (error) reject(error);
+          else resolve(result.secure_url);
+        }).end(req.file.buffer);
+      });
+    }
+
+    // Clean updateData (remove undefined/empty fields)
+    Object.keys(updateData).forEach(key => (updateData[key] === undefined || updateData[key] === '') && delete updateData[key]);
+
+    const item = await MenuItem.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    
+    if (!item) {
+      return res.status(404).json({ message: 'Menu item not found' });
+    }
+
     res.json(item);
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -84,9 +84,42 @@ export default function ManageMenu() {
     fetchItems();
   }, []);
 
+  const handleDiscard = () => {
+    const hasChanges = formData.name || formData.description || formData.price || selectedImage;
+    if (!hasChanges) {
+      setModalVisible(false);
+      setSelectedImage(null);
+      return;
+    }
+
+    if (Platform.OS === 'web') {
+      if (window.confirm("Discard changes? All unsaved data will be lost.")) {
+        setModalVisible(false);
+        setSelectedImage(null);
+      }
+      return;
+    }
+
+    Alert.alert(
+      "Discard Changes",
+      "Are you sure you want to discard your changes?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Discard", style: "destructive", onPress: () => {
+          setModalVisible(false);
+          setSelectedImage(null);
+        }}
+      ]
+    );
+  };
+
   const handleSave = async () => {
     if (!formData.name || !formData.price || !formData.description) {
-      Alert.alert("Missing Info", "Please fill all required fields.");
+      if (Platform.OS === 'web') {
+        alert("Please fill all required fields (Name, Price, Description).");
+      } else {
+        Alert.alert("Missing Info", "Please fill all required fields.");
+      }
       return;
     }
 
@@ -99,35 +132,42 @@ export default function ManageMenu() {
 
     if (selectedImage) {
       const uri = selectedImage;
-      const filename = uri.split('/').pop();
-      const match = /\.(\w+)$/.exec(filename || '');
-      const type = match ? `image/${match[1] === 'jpg' ? 'jpeg' : match[1]}` : `image`;
+      const filename = uri.split('/').pop() || 'image.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1] === 'jpg' ? 'jpeg' : match[1]}` : `image/jpeg`;
       
-      // Axios in React Native needs this object for multipart/form-data
       data.append('image', {
-        uri,
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
         name: filename,
         type,
       } as any);
     }
 
     try {
+      console.log(`[Manage] Saving... Editing: ${!!editingItem}`);
       if (editingItem) {
         await api.put(`/menu/${editingItem.id}`, data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        Alert.alert("Updated", "Item updated successfully.");
+        if (Platform.OS === 'web') alert("Item updated successfully.");
+        else Alert.alert("Updated", "Item updated successfully.");
       } else {
         await api.post("/menu", data, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-        Alert.alert("Success", "New item created!");
+        if (Platform.OS === 'web') alert("New item created!");
+        else Alert.alert("Success", "New item created!");
       }
-      fetchItems();
+      
+      await fetchItems();
       setModalVisible(false);
       setSelectedImage(null);
+      setFormData({ name: "", description: "", price: "", image_url: "", is_available: true });
     } catch (error: any) {
-      Alert.alert("Error", error.response?.data?.message || error.message);
+      console.error("[Manage] Save error:", error.response?.data || error.message);
+      const msg = error.response?.data?.message || error.message;
+      if (Platform.OS === 'web') alert(`Error: ${msg}`);
+      else Alert.alert("Error", msg);
     } finally {
       setUploading(false);
     }
@@ -218,108 +258,112 @@ export default function ManageMenu() {
 
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
-        <View className="flex-1 bg-background p-8">
-          <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-3xl font-black text-white tracking-tighter italic">
-              {editingItem ? "Edit Entry" : "New Entry"}
-            </Text>
-            <TouchableOpacity onPress={() => { setModalVisible(false); setSelectedImage(null); }} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/10 shadow-sm">
-              <X size={24} color="#ff6b00" strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Image Picker Section */}
-          <View className="items-center mb-10">
-             <View className="w-40 h-40 rounded-[48px] bg-muted border border-white/5 overflow-hidden shadow-2xl relative">
-                {(selectedImage || formData.image_url) ? (
-                   <Image source={{ uri: selectedImage || formData.image_url }} className="w-full h-full" />
-                ) : (
-                   <View className="w-full h-full items-center justify-center">
-                      <ImageIcon size={48} color="#222" strokeWidth={1} />
-                   </View>
-                )}
-                {selectedImage && (
-                   <View className="absolute top-2 right-2 bg-primary rounded-full p-1 border-2 border-background">
-                      <CheckCircle size={14} color="black" strokeWidth={3} />
-                   </View>
-                )}
-             </View>
-             
-             <View className="flex-row gap-4 mt-6">
-                <TouchableOpacity 
-                  onPress={takePhoto}
-                  className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
-                >
-                  <Camera size={18} color="#ff6b00" strokeWidth={2.5} />
-                  <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Camera</Text>
+        <View className="flex-1 bg-background">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <View className="p-8">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-3xl font-black text-white tracking-tighter italic">
+                  {editingItem ? "Edit Entry" : "New Entry"}
+                </Text>
+                <TouchableOpacity onPress={handleDiscard} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-primary/10 shadow-sm">
+                  <X size={24} color="#ff6b00" strokeWidth={2.5} />
                 </TouchableOpacity>
+              </View>
+
+              {/* Image Picker Section */}
+              <View className="items-center mb-10">
+                 <View className="w-40 h-40 rounded-[48px] bg-muted border border-white/5 overflow-hidden shadow-2xl relative">
+                    {(selectedImage || formData.image_url) ? (
+                       <Image source={{ uri: selectedImage || formData.image_url }} className="w-full h-full" />
+                    ) : (
+                       <View className="w-full h-full items-center justify-center">
+                          <ImageIcon size={48} color="#222" strokeWidth={1} />
+                       </View>
+                    )}
+                    {selectedImage && (
+                       <View className="absolute top-2 right-2 bg-primary rounded-full p-1 border-2 border-background">
+                          <CheckCircle size={14} color="black" strokeWidth={3} />
+                       </View>
+                    )}
+                 </View>
+                 
+                 <View className="flex-row gap-4 mt-6">
+                    <TouchableOpacity 
+                      onPress={takePhoto}
+                      className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
+                    >
+                      <Camera size={18} color="#ff6b00" strokeWidth={2.5} />
+                      <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={pickImage}
+                      className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
+                    >
+                      <Upload size={18} color="#ff6b00" strokeWidth={2.5} />
+                      <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Gallery</Text>
+                    </TouchableOpacity>
+                 </View>
+              </View>
+
+              <View className="space-y-8">
+                <View className="space-y-3">
+                  <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Identity</Text>
+                  <TextInput 
+                    className="h-20 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-xl italic shadow-inner"
+                    placeholder="e.g. Masala Tea"
+                    placeholderTextColor="#444"
+                    onChangeText={(t) => setFormData({...formData, name: t})}
+                    value={formData.name}
+                  />
+                </View>
+
+                <View className="space-y-3">
+                  <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Intel</Text>
+                  <TextInput 
+                    className="h-20 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-xl italic shadow-inner"
+                    placeholder="Delicious hand-made tea"
+                    placeholderTextColor="#444"
+                    onChangeText={(t) => setFormData({...formData, description: t})}
+                    value={formData.description}
+                  />
+                </View>
+
+                <View className="space-y-3">
+                  <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Credits (Rs.)</Text>
+                  <TextInput 
+                    className="h-16 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-2xl italic shadow-inner"
+                    placeholder="50"
+                    placeholderTextColor="#444"
+                    keyboardType="numeric"
+                    onChangeText={(t) => setFormData({...formData, price: t})}
+                    value={formData.price}
+                  />
+                </View>
+
                 <TouchableOpacity 
-                  onPress={pickImage}
-                  className="flex-row items-center gap-3 bg-white/5 border border-white/10 px-5 py-3 rounded-2xl shadow-sm"
+                  onPress={handleSave}
+                  disabled={uploading}
+                  className={`h-20 bg-primary rounded-[32px] items-center justify-center mt-12 shadow-2xl shadow-primary/40 flex-row gap-4 ${uploading ? "opacity-50" : ""}`}
                 >
-                  <Upload size={18} color="#ff6b00" strokeWidth={2.5} />
-                  <Text className="text-white font-black text-[10px] uppercase tracking-widest italic">Gallery</Text>
+                   {uploading ? (
+                      <Loader2 size={24} color="black" className="animate-spin" />
+                   ) : (
+                     <>
+                      <Text className="text-black font-black text-xl uppercase tracking-widest italic">{editingItem ? "Update dish" : "Add to menu"}</Text>
+                      <CheckCircle size={24} color="black" strokeWidth={3} />
+                     </>
+                   )}
                 </TouchableOpacity>
-             </View>
-          </View>
 
-          <View className="space-y-8">
-            <View className="space-y-3">
-              <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Identity</Text>
-              <TextInput 
-                className="h-20 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-xl italic shadow-inner"
-                placeholder="e.g. Masala Tea"
-                placeholderTextColor="#444"
-                onChangeText={(t) => setFormData({...formData, name: t})}
-                value={formData.name}
-              />
+                <TouchableOpacity 
+                  onPress={handleDiscard}
+                  className="mt-4 pb-12 items-center"
+                >
+                   <Text className="text-gray-500 font-black text-[10px] uppercase tracking-[3px]">Discard Changes</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            <View className="space-y-3">
-              <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Intel</Text>
-              <TextInput 
-                className="h-20 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-xl italic shadow-inner"
-                placeholder="Delicious hand-made tea"
-                placeholderTextColor="#444"
-                onChangeText={(t) => setFormData({...formData, description: t})}
-                value={formData.description}
-              />
-            </View>
-
-            <View className="space-y-3">
-              <Text className="text-[10px] text-gray-400 font-black uppercase tracking-[3px] ml-1">Credits (Rs.)</Text>
-              <TextInput 
-                className="h-16 bg-muted border border-white/5 rounded-3xl px-8 text-white font-black text-2xl italic shadow-inner"
-                placeholder="50"
-                placeholderTextColor="#444"
-                keyboardType="numeric"
-                onChangeText={(t) => setFormData({...formData, price: t})}
-                value={formData.price}
-              />
-            </View>
-
-            <TouchableOpacity 
-              onPress={handleSave}
-              disabled={uploading}
-              className={`h-20 bg-primary rounded-[32px] items-center justify-center mt-12 shadow-2xl shadow-primary/40 flex-row gap-4 ${uploading ? "opacity-50" : ""}`}
-            >
-               {uploading ? (
-                  <Loader2 size={24} color="black" className="animate-spin" />
-               ) : (
-                 <>
-                  <Text className="text-black font-black text-xl uppercase tracking-widest italic">{editingItem ? "Update dish" : "Add to menu"}</Text>
-                  <CheckCircle size={24} color="black" strokeWidth={3} />
-                 </>
-               )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => { setModalVisible(false); setSelectedImage(null); }}
-              className="mt-4 items-center"
-            >
-               <Text className="text-gray-500 font-black text-[10px] uppercase tracking-[3px]">Discard Changes</Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
