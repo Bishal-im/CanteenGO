@@ -5,6 +5,13 @@ const cafeteriaSchema = new mongoose.Schema({
   location: { type: String },
   is_active: { type: Boolean, default: true },
   canteenCode: { type: String, unique: true, sparse: true },
+  adminEmail: { 
+    type: String, 
+    required: true, 
+    unique: true, 
+    lowercase: true, 
+    trim: true 
+  },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timeSlots: { type: [String], default: ["10:15", "11:30", "12:45", "14:00"] },
   paymentQRUrl: { type: String },

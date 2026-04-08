@@ -15,8 +15,32 @@ exports.getCafeterias = async (req, res) => {
 // @route   POST /api/cafeterias
 exports.createCafeteria = async (req, res) => {
   try {
-    const { name, location, is_active } = req.body;
-    const cafeteria = await Cafeteria.create({ name, location, is_active });
+    const { name, location, adminEmail, is_active } = req.body;
+    if (!adminEmail) return res.status(400).json({ message: 'Admin email is required' });
+
+    const email = adminEmail.toLowerCase().trim();
+
+    // Create cafeteria
+    const cafeteria = await Cafeteria.create({ 
+      name, 
+      location, 
+      adminEmail: email, 
+      is_active 
+    });
+
+    // If a user with this email already exists, link them now
+    const User = require('../models/User');
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        existingUser.role = 'admin';
+        existingUser.cafeteriaId = cafeteria._id;
+        await existingUser.save();
+        
+        cafeteria.adminId = existingUser._id;
+        await cafeteria.save();
+        console.log(`[Cafeteria] Pre-linked existing user ${email} to ${name}`);
+    }
+
     res.status(201).json(cafeteria);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -41,16 +65,26 @@ exports.setupCanteenCode = async (req, res) => {
     const { canteenCode } = req.body;
     if (!canteenCode) return res.status(400).json({ message: 'Canteen code is required' });
 
-    // Find cafeteria owned by this admin
-    const cafeteria = await Cafeteria.findOne({ adminId: req.user._id });
+    // Find cafeteria owned by this admin (using email match for robustness)
+    const cafeteria = await Cafeteria.findOne({ 
+        $or: [
+            { adminId: req.user._id },
+            { adminEmail: req.user.email.toLowerCase() }
+        ]
+    });
+
     if (!cafeteria) return res.status(404).json({ message: 'No cafeteria found for this admin' });
 
     cafeteria.canteenCode = canteenCode.trim().toUpperCase();
-    await cafeteria.save();
+    
+    // Ensure back-link is established if it wasn't before
+    if (!cafeteria.adminId) {
+        cafeteria.adminId = req.user._id;
+        const User = require('../models/User');
+        await User.findByIdAndUpdate(req.user._id, { cafeteriaId: cafeteria._id });
+    }
 
-    // Link cafeteria to the admin for easier access in menu lookups
-    const User = require('../models/User');
-    await User.findByIdAndUpdate(req.user._id, { cafeteriaId: cafeteria._id });
+    await cafeteria.save();
 
     res.json({ message: 'Canteen code setup successful', cafeteria });
   } catch (error) {

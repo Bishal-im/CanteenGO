@@ -49,6 +49,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Error fetching profile:", err.message);
       if (err.response) {
         console.error("Backend response error:", err.response.data);
+        if (err.response.status === 401) {
+          console.warn("[Auth] Session invalid or expired. Cleaning up...");
+          setUser(null);
+          setProfile(null);
+          setRole(null);
+          lastFetchedSessionId.current = null;
+          supabase.auth.signOut();
+        }
       }
     }
   };

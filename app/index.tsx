@@ -20,6 +20,7 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { useAuth } from "../context/AuthContext";
+import { api } from "../lib/api";
 
 const AnimatedCoffee = () => {
   const roamX = useSharedValue(0);
@@ -90,6 +91,21 @@ const AnimatedCoffee = () => {
 export default function Index() {
   const router = useRouter();
   const { user } = useAuth();
+  const [isApiOnline, setIsApiOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const response = await api.get('/health');
+        setIsApiOnline(response.data.status === 'ok');
+      } catch (err) {
+        setIsApiOnline(false);
+      }
+    };
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   const navigateToRole = (role: 'customer' | 'admin') => {
     if (user) {
@@ -187,9 +203,9 @@ export default function Index() {
 
         <Animated.View entering={SlideInRight.delay(2000).duration(800).springify()} className="items-center">
           <View className="flex-row items-center gap-3 px-6 py-3 rounded-full bg-zinc-950 border border-primary/5 shadow-inner">
-            <View className={`w-2 h-2 rounded-full ${user ? "bg-green-500/50" : "bg-red-500/50"}`} />
+            <View className={`w-2 h-2 rounded-full ${isApiOnline === true ? "bg-green-500/50" : isApiOnline === false ? "bg-red-500/50" : "bg-yellow-500/50"}`} />
             <Text className="text-[10px] uppercase font-black text-zinc-600 tracking-[2.5px]">
-              {user ? "Authenticated Session" : "Gateway Offline"}
+              {isApiOnline === true ? (user ? "Live Systems (Auth)" : "Public Access Node") : isApiOnline === false ? "Gateway Offline" : "Detecting Link..."}
             </Text>
           </View>
         </Animated.View>

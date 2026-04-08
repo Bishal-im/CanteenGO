@@ -53,13 +53,31 @@ exports.updateUserRole = async (req, res) => {
 // @route   GET /api/auth/profile
 exports.getProfile = async (req, res) => {
   try {
-    console.log('[Controller] getProfile called');
-    console.log('[Controller] User model defined:', !!User);
-    console.log('[Controller] req.user defined:', !!req.user);
     if (!req.user) {
       return res.status(401).json({ message: 'User object not found in request' });
     }
-    const user = await User.findById(req.user._id).select('-password').populate('cafeteriaId', 'name canteenCode');
+
+    let user = await User.findById(req.user._id).select('-password').populate('cafeteriaId', 'name canteenCode');
+    
+    // AUTO-LINK LOGIC for Admins
+    if (user && !user.cafeteriaId) {
+        const Cafeteria = require('../models/Cafeteria');
+        const ownedCafeteria = await Cafeteria.findOne({ adminEmail: user.email.toLowerCase().trim() });
+        
+        if (ownedCafeteria) {
+            console.log(`[Auth] Auto-linking ${user.email} to canteen ${ownedCafeteria.name}`);
+            user.role = 'admin';
+            user.cafeteriaId = ownedCafeteria._id;
+            await user.save();
+            
+            ownedCafeteria.adminId = user._id;
+            await ownedCafeteria.save();
+            
+            // Re-populate after link
+            user = await User.findById(req.user._id).select('-password').populate('cafeteriaId', 'name canteenCode');
+        }
+    }
+
     if (user) {
       // Issue separate secure cookies based on role
       const isPrivileged = user.role === 'admin' || user.role === 'superadmin';
@@ -74,12 +92,11 @@ exports.getProfile = async (req, res) => {
           path: '/',
           maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
         });
-        console.log(`[Auth] Issued ${cookieName} cookie for ${user.email}`);
       }
 
-    res.json(user);
+      res.json(user);
     } else {
-      res.status(404).json({ message: 'User not found in database' });
+      res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
     console.error('[Controller] Profile error:', error);
@@ -116,42 +133,13 @@ exports.logout = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────
-// Admin Whitelist Management (SuperAdmin Only)
+// Admin Management (SuperAdmin Only)
 // ─────────────────────────────────────────────
 
-// @desc    Add email to admin whitelist
+// @desc    Add admin (Placeholder for compatibility if needed, but logic moved to Cafeteria creation)
 // @route   POST /api/auth/admins
 exports.addAdmin = async (req, res) => {
-  try {
-    const { email, name } = req.body;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    // Check if already whitelisted
-    const existing = await AdminWhitelist.findOne({ email: normalizedEmail });
-    if (existing) return res.status(409).json({ message: 'This email is already an admin' });
-
-    // Add to whitelist
-    const entry = await AdminWhitelist.create({
-      email: normalizedEmail,
-      name: name?.trim() || null,
-      addedBy: req.user._id,
-    });
-
-    // If user already exists in the system, upgrade them immediately
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser && existingUser.role === 'customer') {
-      existingUser.role = 'admin';
-      if (name && !existingUser.name) existingUser.name = name.trim();
-      await existingUser.save();
-      console.log(`[Whitelist] Upgraded existing user ${normalizedEmail} to admin`);
-    }
-
-    res.status(201).json({ message: `${normalizedEmail} added as admin`, entry });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+  res.status(400).json({ message: 'Admins are now linked directly via Cafeteria creation.' });
 };
 
 // @desc    Get all whitelisted admins
