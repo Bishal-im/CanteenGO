@@ -54,15 +54,15 @@ export default function ProfileScreen() {
         <View style={styles.avatarWrap}>
           <UserIcon size={40} color="#ff6b00" strokeWidth={2.5} />
         </View>
-        <Text style={styles.userName}>{user?.name || "User"}</Text>
+        <Text style={styles.userName}>{user?.name || "Hey there!"}</Text>
         <View style={styles.roleBadge}>
           <Shield size={12} color="#ff6b00" />
-          <Text style={styles.roleText}>{role?.toUpperCase()}</Text>
+          <Text style={styles.roleText}>{role === 'customer' ? 'Foodie' : role?.toUpperCase()}</Text>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ACCOUNT DETAILS</Text>
+        <Text style={styles.sectionTitle}>THE BASICS</Text>
         
         {/* Email */}
         <View style={styles.infoCard}>
@@ -70,7 +70,7 @@ export default function ProfileScreen() {
             <Mail size={20} color="#ff6b00" />
           </View>
           <View>
-            <Text style={styles.infoLabel}>EMAIL ADDRESS</Text>
+            <Text style={styles.infoLabel}>MY EMAIL</Text>
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
         </View>
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
               <School size={20} color="#ff6b00" />
             </View>
             <View>
-              <Text style={styles.infoLabel}>FACULTY / DEPT</Text>
+              <Text style={styles.infoLabel}>FIELD OF STUDY 📚</Text>
               <Text style={styles.infoValue}>{user.faculty}</Text>
             </View>
           </View>
@@ -95,10 +95,10 @@ export default function ProfileScreen() {
               <Utensils size={20} color="#ff6b00" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.infoLabel}>LINKED CANTEEN</Text>
-              <Text style={styles.infoValue}>{user.cafeteriaId?.name || "None"}</Text>
+              <Text style={styles.infoLabel}>MY FOOD SPOT 🍕</Text>
+              <Text style={styles.infoValue}>{user.cafeteriaId?.name || "Searching for food..."}</Text>
               {user.cafeteriaId?.canteenCode && (
-                <Text style={styles.subInfo}>Code: {user.cafeteriaId.canteenCode}</Text>
+                <Text style={styles.subInfo}>Canteen Code: {user.cafeteriaId.canteenCode}</Text>
               )}
             </View>
             <TouchableOpacity style={styles.changeBtn} onPress={handleChangeCanteen}>
@@ -111,13 +111,13 @@ export default function ProfileScreen() {
       {/* Admin Specific */}
       {(role === 'admin' || role === 'superadmin') && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>MANAGEMENT</Text>
+          <Text style={styles.sectionTitle}>COMMAND CENTER</Text>
           <TouchableOpacity 
             style={styles.menuItem} 
             onPress={() => router.push(role === 'admin' ? "/(admin)" : "/(superadmin)")}
           >
             <Shield size={20} color="#ff6b00" />
-            <Text style={styles.menuItemText}>Dashboard Access</Text>
+            <Text style={styles.menuItemText}>Go to Management</Text>
             <ChevronRight size={20} color="#444" />
           </TouchableOpacity>
         </View>
@@ -125,10 +125,10 @@ export default function ProfileScreen() {
 
       {/* Settings / Others */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>OTHERS</Text>
+        <Text style={styles.sectionTitle}>JUST IN CASE</Text>
         <TouchableOpacity style={styles.menuItem}>
           <Settings size={20} color="#ff6b00" />
-          <Text style={styles.menuItemText}>Notification Settings</Text>
+          <Text style={styles.menuItemText}>Notifications</Text>
           <ChevronRight size={20} color="#444" />
         </TouchableOpacity>
         

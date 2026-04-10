@@ -33,8 +33,8 @@ const wipeDatabase = async () => {
         console.log(`- Deleted ${whitelistResult.deletedCount} whitelist entries.`);
 
         // Delete all users EXCEPT the designated SuperAdmin
-        const userResult = await User.deleteMany({ 
-            email: { $ne: 'binodstha06@gmail.com' } 
+        const userResult = await User.deleteMany({
+            email: { $ne: 'binodstha060@gmail.com' }
         });
         console.log(`- Deleted ${userResult.deletedCount} users (Preserved binodstha06@gmail.com).`);
 

@@ -113,11 +113,11 @@ export default function CartScreen() {
       </View>
 
       <View className="mb-10">
-        <Text className="text-[10px] font-black text-primary uppercase tracking-[4px]">Review Items</Text>
-        <Text className="text-4xl font-black text-white tracking-tighter italic">Your Bag</Text>
+        <Text className="text-[10px] font-black text-primary uppercase tracking-[4px]">Checking your feast 😋</Text>
+        <Text className="text-4xl font-black text-white tracking-tighter italic">Plate Preview 🍱</Text>
         <View className="flex-row items-center mt-2">
             <View className="w-12 h-1 bg-primary rounded-full mr-3" />
-            <Text className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">{totalItems} Total items</Text>
+            <Text className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">{totalItems} Goodies ready</Text>
         </View>
       </View>
 
@@ -157,7 +157,7 @@ export default function CartScreen() {
         <View className="space-y-3">
           <View className="flex-row items-center gap-3 ml-1">
             <Clock size={12} color="#ff6b00" strokeWidth={2.5} />
-            <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[3px]">Target Pickup Window</Text>
+            <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[3px]">When are you coming? 🚶‍♂️</Text>
           </View>
           <View className="bg-card border border-white/5 rounded-2xl px-6 h-16 justify-center shadow-inner">
             <TextInput
@@ -172,7 +172,7 @@ export default function CartScreen() {
 
         {/* Remarks Input */}
         <View className="space-y-3">
-          <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[3px] ml-1">Special Instructions</Text>
+          <Text className="text-[10px] text-gray-500 font-black uppercase tracking-[3px] ml-1">Any special wishes? ✨</Text>
           <View className="bg-card border border-white/5 rounded-2xl px-6 h-16 justify-center shadow-inner">
             <TextInput
               placeholder="e.g. Extra spicy, less salt"
@@ -198,7 +198,7 @@ export default function CartScreen() {
           </View>
           
           <Text className="text-gray-500 font-black text-[10px] leading-5 mb-6 uppercase tracking-[3px]">
-            Scan QR in Canteen & Upload Receipt
+            Scan & Drop the Receipt here!
           </Text>
   
           <TouchableOpacity 

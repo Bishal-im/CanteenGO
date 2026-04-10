@@ -57,8 +57,8 @@ export default function MenuScreen() {
       <BlurView intensity={80} tint="dark" className="px-6 pt-16 pb-8 border-b border-white/5 z-10">
         <View className="flex-row justify-between items-center mb-10">
           <View>
-            <Text className="text-[10px] font-black text-primary uppercase tracking-[4px]">CanteenGo Premium</Text>
-            <Text className="text-3xl font-black text-white tracking-tighter italic">Bistro <Text className="text-primary italic">Menu</Text></Text>
+            <Text className="text-[10px] font-black text-primary uppercase tracking-[4px]">CanteenGo Family</Text>
+            <Text className="text-3xl font-black text-white tracking-tighter italic">Today's <Text className="text-primary italic">Delights 🥘</Text></Text>
           </View>
           <TouchableOpacity 
             onPress={() => router.push("/cart")}
@@ -77,7 +77,7 @@ export default function MenuScreen() {
            <View className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full -mr-12 -mt-12 blur-xl" />
           <Search size={22} color="#ff6b00" strokeWidth={2.5} />
           <TextInput
-            placeholder="Today's cravings?"
+            placeholder="What's on your mind? 🥙"
             placeholderTextColor="#444"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -92,15 +92,15 @@ export default function MenuScreen() {
             <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-8 border border-primary/20">
               <Utensils size={48} color="#ff6b00" strokeWidth={1.5} />
             </View>
-            <Text className="text-3xl font-black text-white text-center italic tracking-tighter mb-4">You haven't joined a canteen yet!</Text>
+            <Text className="text-3xl font-black text-white text-center italic tracking-tighter mb-4">Wait, where's the food? 🍽️</Text>
             <Text className="text-gray-500 text-center font-medium leading-6 mb-10">
-              Join a canteen to see their fresh menu, daily specials, and start pre-ordering your favorites.
+              Pick a canteen to see what's cooking today and skip the line by pre-ordering!
             </Text>
             <TouchableOpacity 
               onPress={() => router.push("/join-canteen")}
               className="w-full h-16 bg-primary rounded-2xl flex-row items-center justify-center gap-3 shadow-2xl shadow-primary/40"
             >
-              <Text className="text-black font-black text-lg uppercase tracking-widest italic">Join Canteen Now</Text>
+              <Text className="text-black font-black text-lg uppercase tracking-widest italic">Pick My Canteen</Text>
               <ArrowRight size={20} color="black" strokeWidth={3} />
             </TouchableOpacity>
           </View>
