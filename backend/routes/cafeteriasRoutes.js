@@ -1,5 +1,5 @@
 const express = require('express');
-const { getCafeterias, createCafeteria, updateCafeteria, setupCanteenCode, joinCafeteria, getCafeteriaByCode } = require('../controllers/cafeteriasController');
+const { getCafeterias, createCafeteria, updateCafeteria, deleteCafeteria, setupCanteenCode, joinCafeteria, getCafeteriaByCode } = require('../controllers/cafeteriasController');
 const { protect, admin, superAdmin } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -15,5 +15,6 @@ router.put('/my/categories', protect, admin, updateCategories);
 
 router.post('/', protect, superAdmin, createCafeteria);
 router.put('/:id', protect, superAdmin, updateCafeteria);
+router.delete('/:id', protect, superAdmin, deleteCafeteria);
 
 module.exports = router;

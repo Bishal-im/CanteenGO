@@ -1,24 +1,32 @@
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl, Modal } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, RefreshControl, Modal, ActivityIndicator } from "react-native";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { Plus, Store, MapPin, X, Trash2, Edit2, Coffee, ArrowLeft, Mail, Heart } from "lucide-react-native";
+import { Plus, Store, MapPin, X, Trash2, Edit2, Coffee, ArrowLeft, Mail, Heart, AlertTriangle, Check } from "lucide-react-native";
 import { api } from "../../lib/api";
 import { GlassCard } from "../../components/GlassCard";
+import { BlurView } from "expo-blur";
+import Animated, { FadeIn, FadeOut, ScaleInCenter, ScaleOutCenter } from "react-native-reanimated";
 
 interface Cafeteria {
   id: string;
   name: string;
   location: string;
-  image_url: string;
   adminEmail: string;
+  image_url?: string;
 }
 
 export default function CafeteriaManagement() {
   const router = useRouter();
   const [cafeterias, setCafeterias] = useState<Cafeteria[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<Cafeteria | null>(null);
+  
   const [formData, setFormData] = useState({ name: "", location: "", adminEmail: "", image_url: "" });
 
   const fetchCafeterias = async () => {
@@ -42,20 +50,68 @@ export default function CafeteriaManagement() {
     fetchCafeterias();
   }, []);
 
-  const handleCreate = async () => {
+  const resetForm = () => {
+    setFormData({ name: "", location: "", adminEmail: "", image_url: "" });
+    setIsEditing(false);
+    setEditingId(null);
+  };
+
+  const handleCreateOrUpdate = async () => {
     if (!formData.name || !formData.location || !formData.adminEmail) {
-        Alert.alert("Oops!", "Please make sure to fill in the canteen name, location, and the manager's email so we can hook them up!");
+        Alert.alert("Oops!", "Please make sure to fill in the canteen name, location, and the manager's email!");
         return;
     }
+    
+    setActionLoading(true);
     try {
-      await api.post("/cafeterias", formData);
-      Alert.alert("Yay! 🎉", "Your new canteen is officially on the map!");
+      if (isEditing && editingId) {
+        await api.put(`/cafeterias/${editingId}`, formData);
+        Alert.alert("Updated! ✨", "Canteen details have been successfully refreshed.");
+      } else {
+        await api.post("/cafeterias", formData);
+        Alert.alert("Yay! 🎉", "Your new canteen is officially on the map!");
+      }
       setModalVisible(false);
-      setFormData({ name: "", location: "", adminEmail: "", image_url: "" });
+      resetForm();
       fetchCafeterias();
     } catch (error: any) {
-      Alert.alert("Something went wrong", error.response?.data?.message || "We couldn't set up the canteen just yet.");
+      Alert.alert("Something went wrong", error.response?.data?.message || "Operation failed.");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const initiateDelete = (item: Cafeteria) => {
+    setItemToDelete(item);
+    setConfirmVisible(true);
+  };
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
+    
+    setActionLoading(true);
+    try {
+        await api.delete(`/cafeterias/${itemToDelete.id}`);
+        setConfirmVisible(false);
+        setItemToDelete(null);
+        fetchCafeterias();
+    } catch (error: any) {
+        Alert.alert("Error", "Could not remove this canteen.");
+    } finally {
+        setActionLoading(false);
+    }
+  };
+
+  const initiateEdit = (item: Cafeteria) => {
+    setFormData({
+        name: item.name,
+        location: item.location,
+        adminEmail: item.adminEmail,
+        image_url: item.image_url || ""
+    });
+    setEditingId(item.id);
+    setIsEditing(true);
+    setModalVisible(true);
   };
 
   return (
@@ -74,7 +130,7 @@ export default function CafeteriaManagement() {
           </View>
         </View>
         <TouchableOpacity 
-          onPress={() => setModalVisible(true)}
+          onPress={() => { resetForm(); setModalVisible(true); }}
           className="w-12 h-12 rounded-2xl bg-primary items-center justify-center shadow-2xl shadow-primary/30 rotate-6"
         >
           <Plus size={24} color="black" strokeWidth={3} />
@@ -105,6 +161,22 @@ export default function CafeteriaManagement() {
                         <Text className="text-[9px] font-bold text-gray-600 italic" numberOfLines={1}>{cafe.adminEmail || "No manager yet"}</Text>
                       </View>
                   </View>
+                  
+                  {/* Action Buttons */}
+                  <View className="flex-row gap-2">
+                    <TouchableOpacity 
+                      onPress={() => initiateEdit(cafe)}
+                      className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 items-center justify-center"
+                    >
+                        <Edit2 size={16} color="#3b82f6" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      onPress={() => initiateDelete(cafe)}
+                      className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 items-center justify-center"
+                    >
+                        <Trash2 size={16} color="#ef4444" strokeWidth={2.5} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </GlassCard>
             </View>
@@ -119,11 +191,13 @@ export default function CafeteriaManagement() {
         </View>
       </ScrollView>
 
-      {/* Register Modal */}
+      {/* Register/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View className="flex-1 bg-background p-8">
             <View className="flex-row justify-between items-center mb-10">
-                <Text className="text-3xl font-black text-white tracking-tighter italic">New Canteen ✨</Text>
+                <Text className="text-3xl font-black text-white tracking-tighter italic">
+                    {isEditing ? "Modify Unit ✨" : "New Canteen ✨"}
+                </Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)} className="w-12 h-12 rounded-2xl bg-white/5 items-center justify-center border border-white/5">
                     <X size={24} color="#ff6b00" />
                 </TouchableOpacity>
@@ -166,15 +240,76 @@ export default function CafeteriaManagement() {
                 </View>
 
                 <TouchableOpacity 
-                    onPress={handleCreate}
+                    onPress={handleCreateOrUpdate}
+                    disabled={actionLoading}
                     className="h-20 bg-primary rounded-[32px] items-center justify-center mt-12 shadow-2xl shadow-primary/40 flex-row gap-4"
                 >
-                    <Text className="text-black font-black text-xl italic tracking-tighter uppercase">Bring it to life!</Text>
-                    <Heart size={20} color="black" strokeWidth={3} />
+                    {actionLoading ? (
+                        <ActivityIndicator color="black" />
+                    ) : (
+                        <>
+                            <Text className="text-black font-black text-xl italic tracking-tighter uppercase font-black">
+                                {isEditing ? "Update Unit" : "Bring it to life!"}
+                            </Text>
+                            <Heart size={20} color="black" strokeWidth={3} />
+                        </>
+                    )}
                 </TouchableOpacity>
             </View>
         </View>
       </Modal>
+
+      {/* Custom Global Confirmation Modal */}
+      {confirmVisible && (
+          <View className="absolute inset-0 z-[100] items-center justify-center px-8">
+              <Animated.View 
+                entering={FadeIn}
+                exiting={FadeOut}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              />
+              <Animated.View 
+                entering={ScaleInCenter}
+                exiting={ScaleOutCenter}
+                className="w-full"
+              >
+                  <GlassCard containerStyle={{ borderRadius: 40, padding: 32, borderWidth: 1, borderColor: '#ef444430' }}>
+                      <View className="items-center">
+                          <View className="w-20 h-20 rounded-3xl bg-red-500/10 items-center justify-center mb-6 border border-red-500/20 rotate-3">
+                              <AlertTriangle size={40} color="#ef4444" strokeWidth={2.5} />
+                          </View>
+                          <Text className="text-3xl font-black text-white text-center leading-9 italic tracking-tighter mb-4">
+                              Remove from Grid?
+                          </Text>
+                          <Text className="text-gray-400 text-center font-bold px-4 mb-10 leading-6 uppercase tracking-[1px] text-[10px]">
+                              Are you sure you want to shut down "{itemToDelete?.name}"? All associated data will be archived.
+                          </Text>
+                          
+                          <View className="flex-row gap-4 w-full">
+                              <TouchableOpacity 
+                                onPress={() => setConfirmVisible(false)}
+                                className="flex-1 h-16 rounded-2xl bg-white/5 border border-white/10 items-center justify-center"
+                              >
+                                  <Text className="text-white font-black uppercase tracking-widest text-xs">Stay</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity 
+                                onPress={handleDelete}
+                                disabled={actionLoading}
+                                className="flex-1 h-16 rounded-2xl bg-red-500 items-center justify-center shadow-xl shadow-red-500/30"
+                              >
+                                  {actionLoading ? (
+                                      <ActivityIndicator color="white" />
+                                  ) : (
+                                      <View className="flex-row items-center gap-2">
+                                          <Text className="text-white font-black uppercase tracking-widest text-xs">Remove</Text>
+                                      </View>
+                                  )}
+                              </TouchableOpacity>
+                          </View>
+                      </View>
+                  </GlassCard>
+              </Animated.View>
+          </View>
+      )}
     </View>
   );
 }

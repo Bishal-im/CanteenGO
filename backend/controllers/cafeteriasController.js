@@ -155,3 +155,20 @@ exports.updateCategories = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// @desc    Delete cafeteria
+// @route   DELETE /api/cafeterias/:id
+exports.deleteCafeteria = async (req, res) => {
+  try {
+    const cafeteria = await Cafeteria.findById(req.params.id);
+    if (!cafeteria) return res.status(404).json({ message: 'No cafeteria found' });
+
+    // Clean up links in User model
+    const User = require('../models/User');
+    await User.updateMany({ cafeteriaId: cafeteria._id }, { cafeteriaId: null });
+
+    await cafeteria.deleteOne();
+    res.json({ message: 'Cafeteria removed from the grid' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
