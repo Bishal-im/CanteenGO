@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Search, ShoppingBag, Plus, Minus, Info, Utensils, ArrowRight } from "lucide-react-native";
 import { api } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 import { BlurView } from "expo-blur";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SkeletonPulse } from "../../components/SkeletonPulse";
@@ -21,10 +22,10 @@ interface MenuItem {
 export default function MenuScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { cart, addToCart, removeFromCart, totalItems } = useCart();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [cart, setCart] = useState<{ [key: string]: number }>({});
 
   const fetchMenu = async () => {
     try {
@@ -46,20 +47,10 @@ export default function MenuScreen() {
     fetchMenu();
   }, []);
 
-  const addToCart = (id: string) => {
-    setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-  };
-
-  const removeFromCart = (id: string) => {
-    setCart(prev => {
-      const newCart = { ...prev };
-      if (newCart[id] > 1) newCart[id]--;
-      else delete newCart[id];
-      return newCart;
-    });
-  };
-
-  const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
+  const filteredItems = menuItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <View className="flex-1 bg-background">
@@ -131,7 +122,7 @@ export default function MenuScreen() {
           </View>
         ) : (
           <View className="py-8">
-            {menuItems.map((item, index) => (
+            {filteredItems.map((item, index) => (
               <Animated.View 
                 entering={FadeInDown.delay(index * 100).springify()}
                 key={item.id} 
@@ -167,9 +158,9 @@ export default function MenuScreen() {
                             >
                               <Minus size={20} color="#ff6b00" strokeWidth={2.5} />
                             </TouchableOpacity>
-                            <Text className="text-white font-black px-6 text-lg italic">{cart[item.id]}</Text>
+                            <Text className="text-white font-black px-6 text-lg italic">{cart[item.id].quantity}</Text>
                             <TouchableOpacity 
-                              onPress={() => addToCart(item.id)} 
+                              onPress={() => addToCart(item)} 
                               className="w-10 h-10 items-center justify-center bg-white/5 border border-primary/20 rounded-xl"
                             >
                               <Plus size={20} color="#ff6b00" strokeWidth={2.5} />
@@ -177,7 +168,7 @@ export default function MenuScreen() {
                           </View>
                         ) : (
                           <TouchableOpacity 
-                            onPress={() => addToCart(item.id)}
+                            onPress={() => addToCart(item)}
                             className="w-12 h-12 rounded-2xl bg-white/5 border border-primary/20 items-center justify-center shadow-2xl shadow-primary/10 rotate-3"
                           >
                             <Plus size={24} color="#ff6b00" strokeWidth={2.5} />
@@ -190,13 +181,17 @@ export default function MenuScreen() {
               </Animated.View>
             ))}
 
-            {menuItems.length === 0 && !loading && (
+            {filteredItems.length === 0 && !loading && (
                <View className="py-20 items-center justify-center">
                  <View className="w-16 h-16 bg-primary/10 rounded-full items-center justify-center mb-4">
                    <Info size={32} color="#ff6b00" strokeWidth={2.5} />
                  </View>
-                 <Text className="text-white font-black text-xl mt-4 italic text-center">Fresh Menu Coming Soon! 🍳</Text>
-                 <Text className="text-gray-500 font-medium text-xs mt-2 text-center">This canteen hasn't uploaded their menu yet.</Text>
+                 <Text className="text-white font-black text-xl mt-4 italic text-center">
+                    {searchQuery ? "No matches found" : "Fresh Menu Coming Soon! 🍳"}
+                 </Text>
+                 <Text className="text-gray-500 font-medium text-xs mt-2 text-center">
+                    {searchQuery ? `We couldn't find anything for "${searchQuery}"` : "This canteen hasn't uploaded their menu yet."}
+                 </Text>
                </View>
             )}
           </View>

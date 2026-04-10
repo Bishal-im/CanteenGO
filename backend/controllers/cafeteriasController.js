@@ -123,3 +123,35 @@ exports.joinCafeteria = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get admin's cafeteria categories
+// @route   GET /api/cafeterias/my/categories
+exports.getCategories = async (req, res) => {
+  try {
+    const cafeteria = await Cafeteria.findOne({ adminId: req.user._id });
+    if (!cafeteria) return res.status(404).json({ message: 'No cafeteria found' });
+    res.json(cafeteria.categories || []);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update admin's cafeteria categories
+// @route   PUT /api/cafeterias/my/categories
+exports.updateCategories = async (req, res) => {
+  try {
+    const { categories } = req.body;
+    if (!Array.isArray(categories)) {
+        return res.status(400).json({ message: 'Categories must be an array of strings' });
+    }
+
+    const cafeteria = await Cafeteria.findOne({ adminId: req.user._id });
+    if (!cafeteria) return res.status(404).json({ message: 'No cafeteria found' });
+
+    cafeteria.categories = categories;
+    await cafeteria.save();
+    res.json({ message: 'Categories updated', categories: cafeteria.categories });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

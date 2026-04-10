@@ -1,19 +1,34 @@
 const Order = require('../models/Order');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Create new order
 // @route   POST /api/orders
 exports.createOrder = async (req, res) => {
   try {
-    const { items, total_amount, time_slot, payment_screenshot_url, remarks } = req.body;
+    const { items, total_amount, time_slot, remarks } = req.body;
     
+    // Parse items if it's a string (due to multipart/form-data)
+    const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+
     if (!req.user.cafeteriaId) {
       return res.status(400).json({ message: 'Please join a canteen first before ordering.' });
+    }
+
+    let payment_screenshot_url = '';
+
+    if (req.file) {
+        payment_screenshot_url = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'canteengo/receipts' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result.secure_url);
+            }).end(req.file.buffer);
+        });
     }
 
     const order = await Order.create({
       customer_id: req.user._id,
       cafeteria_id: req.user.cafeteriaId,
-      items,
+      items: parsedItems,
       total_amount,
       time_slot,
       payment_screenshot_url,
@@ -23,6 +38,7 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(order);
   } catch (error) {
+    console.error('[Order] Create error:', error);
     res.status(500).json({ message: error.message });
   }
 };

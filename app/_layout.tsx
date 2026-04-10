@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments, usePathname, useRootNavigationState } fr
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { CartProvider } from "../context/CartContext";
 import { NativeWindStyleSheet } from "nativewind";
 import { View, ActivityIndicator } from "react-native";
 import "../global.css";
@@ -79,8 +80,10 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
-      <StatusBar style="light" />
+      <CartProvider>
+        <RootLayoutNav />
+        <StatusBar style="light" />
+      </CartProvider>
     </AuthProvider>
   );
 }

@@ -14,6 +14,7 @@ const cafeteriaSchema = new mongoose.Schema({
   },
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   timeSlots: { type: [String], default: ["10:15", "11:30", "12:45", "14:00"] },
+  categories: { type: [String], default: ["Snacks", "Lunch", "Drinks"] },
   paymentQRUrl: { type: String },
 }, { timestamps: true });
 
