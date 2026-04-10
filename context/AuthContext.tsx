@@ -90,18 +90,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setIsLoggingOut(true);
-      console.log("[SignOut] Calling backend logout and supabase.auth.signOut()...");
-      // Call backend to clear cookies
-      await api.post('/auth/logout').catch(err => console.error("Backend logout error (cookies might not be cleared):", err));
-      // Call supabase to clear session
-      await supabase.auth.signOut();
+      console.log("[SignOut] Initiating sign out sequence...");
+
+      // 1. Fire and forget backend logout (cookies)
+      api.post('/auth/logout').catch(err => {
+        console.warn("[SignOut] Backend cookie clear failed (non-critical):", err.message);
+      });
+
+      // 2. Terminate Supabase session
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("[SignOut] Supabase signOut error:", error.message);
+
     } catch (error) {
-      console.error("[SignOut] Error during sign out:", error);
+      console.error("[SignOut] Unexpected error during sign out:", error);
     } finally {
+      // 3. Force clear local state to trigger navigation
+      lastFetchedSessionId.current = null;
       setUser(null);
       setProfile(null);
       setRole(null);
       setIsLoggingOut(false);
+      console.log("[SignOut] Sign out sequence complete.");
     }
   };
 

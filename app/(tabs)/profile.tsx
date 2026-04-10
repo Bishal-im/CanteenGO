@@ -10,6 +10,12 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const handleSignOut = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm("Are you sure you want to log out?")) {
+        signOut();
+      }
+      return;
+    }
     Alert.alert("Logout", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       { text: "Yes, Logout", onPress: () => signOut() },
@@ -177,7 +183,7 @@ const styles = StyleSheet.create({
     borderColor: "#1a1a1a",
     marginBottom: 12,
   },
-  infoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#ff6b0010", alignItems: "center", justify: "center", marginRight: 16 },
+  infoIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: "#ff6b0010", alignItems: "center", justifyContent: "center", marginRight: 16 },
   infoLabel: { fontSize: 9, fontWeight: "900", color: "#555", letterSpacing: 2, marginBottom: 4 },
   infoValue: { fontSize: 15, fontWeight: "700", color: "#fff" },
   subInfo: { fontSize: 12, color: "#666", marginTop: 2, fontWeight: "600" },
