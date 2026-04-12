@@ -1,8 +1,18 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { supabase } from './supabase';
 
-// Use the environment variable for the API URL; default to localhost for development
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Use the environment variable for the API URL; fallback to localhost
+let API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+if (!API_URL) {
+  API_URL = 'http://localhost:5001/api';
+} else if (Platform.OS === 'web' && API_URL.includes('192.168.')) {
+  // On web, sometimes it's better to try localhost if the IP is unreachable,
+  // but for now we'll just log it.
+  console.log("[API] Running on web with IP:", API_URL);
+}
+
 console.log("[API] Base URL:", API_URL);
 
 export const api = axios.create({
