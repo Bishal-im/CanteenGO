@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const AdminWhitelist = require('../models/AdminWhitelist');
 
 // @desc    Get system stats
 // @route   GET /api/auth/stats
@@ -132,56 +131,3 @@ exports.logout = async (req, res) => {
   res.status(200).json({ message: 'Logged out successfully, session cleared' });
 };
 
-// ─────────────────────────────────────────────
-// Admin Management (SuperAdmin Only)
-// ─────────────────────────────────────────────
-
-// @desc    Add admin (Placeholder for compatibility if needed, but logic moved to Cafeteria creation)
-// @route   POST /api/auth/admins
-exports.addAdmin = async (req, res) => {
-  res.status(400).json({ message: 'Admins are now linked directly via Cafeteria creation.' });
-};
-
-// @desc    Get all whitelisted admins
-// @route   GET /api/auth/admins
-exports.getAdmins = async (req, res) => {
-  try {
-    const admins = await AdminWhitelist.find().sort({ createdAt: -1 });
-    // Enrich with live user status
-    const enriched = await Promise.all(admins.map(async (a) => {
-      const user = await User.findOne({ email: a.email }).select('name role');
-      return {
-        _id: a._id,
-        email: a.email,
-        name: a.name || user?.name || null,
-        hasAccount: !!user,
-        role: user?.role || null,
-        createdAt: a.createdAt,
-      };
-    }));
-    res.json(enriched);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Remove email from admin whitelist
-// @route   DELETE /api/auth/admins/:email
-exports.removeAdmin = async (req, res) => {
-  try {
-    const email = decodeURIComponent(req.params.email).toLowerCase().trim();
-    await AdminWhitelist.findOneAndDelete({ email });
-
-    // Demote user if they exist
-    const user = await User.findOne({ email });
-    if (user && user.role === 'admin') {
-      user.role = 'customer';
-      await user.save();
-      console.log(`[Whitelist] Demoted ${email} to customer`);
-    }
-
-    res.json({ message: `${email} removed from admin whitelist` });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};

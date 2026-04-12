@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProfile, updateProfile, logout, getStats, getUsers, updateUserRole, addAdmin, getAdmins, removeAdmin } = require('../controllers/authController');
+const { getProfile, updateProfile, logout, getStats, getUsers, updateUserRole } = require('../controllers/authController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const router = express.Router();
 
@@ -16,10 +16,5 @@ router.post('/logout', protect, logout);
 router.get('/stats', protect, admin, getStats);
 router.get('/users', protect, admin, getUsers);
 router.put('/users/:id/role', protect, admin, updateUserRole);
-
-// Admin Whitelist Routes (SuperAdmin only)
-router.post('/admins', protect, superadmin, addAdmin);
-router.get('/admins', protect, superadmin, getAdmins);
-router.delete('/admins/:email', protect, superadmin, removeAdmin);
 
 module.exports = router;
