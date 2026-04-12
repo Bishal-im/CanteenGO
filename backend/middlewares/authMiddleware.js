@@ -36,7 +36,6 @@ const protect = async (req, res, next) => {
       user = await User.create({
         name: supabaseUser.user_metadata?.name || supabaseUser.email.split('@')[0],
         email: supabaseUser.email.toLowerCase().trim(),
-        password: 'SUPABASE_AUTH_USER', // Placeholder
         role: 'customer', // Default, auto-upgraded in profile fetch if cafeteria owner
       });
       console.log(`[Auth] Created new user entry for ${user.email}`);
