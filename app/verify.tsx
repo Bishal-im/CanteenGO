@@ -8,7 +8,7 @@ import {
   ScrollView,
   Alert,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -34,6 +34,7 @@ export default function Verify() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const { width } = useWindowDimensions();
   const inputs = useRef<(TextInput | null)[]>([]);
   const pulseScale = useSharedValue(1);
 
@@ -150,11 +151,13 @@ export default function Verify() {
           entering={FadeInDown.delay(100).duration(500)}
           style={styles.emailBadge}
         >
-          <Animated.View style={[styles.emailIconWrapOuter, styles.emailIconWrap, pulseStyle]}>
-            <Mail size={22} color="#ff6b00" strokeWidth={2.5} />
-          </Animated.View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.emailBadgeLabel}>CODE SENT TO</Text>
+          <View style={styles.emailBadgeIconContainer}>
+            <Animated.View style={[styles.emailIconWrap, pulseStyle]}>
+              <Mail size={18} color="#ff6b00" strokeWidth={2.5} />
+            </Animated.View>
+          </View>
+          <View style={styles.emailBadgeTextContainer}>
+            <Text style={styles.emailBadgeLabel}>VERIFICATION SENT TO</Text>
             <Text style={styles.emailBadgeValue} numberOfLines={1}>{email}</Text>
           </View>
         </Animated.View>
@@ -177,24 +180,29 @@ export default function Verify() {
         >
           <Text style={styles.inputLabel}>VERIFICATION CODE</Text>
           <View style={styles.otpRow}>
-            {otp.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(ref) => (inputs.current[index] = ref)}
-                style={[
-                  styles.otpInput,
-                  digit ? styles.otpInputFilled : {},
-                  index === otp.findIndex(d => d === "") && styles.otpInputActive,
-                ]}
-                value={digit}
-                onChangeText={(text) => handleOtpChange(text, index)}
-                onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
-                keyboardType="number-pad"
-                maxLength={1}
-                selectTextOnFocus
-                caretHidden
-              />
-            ))}
+            {otp.map((digit, index) => {
+              const firstEmptyIndex = otp.findIndex(d => d === "");
+              const isFocused = index === (firstEmptyIndex === -1 ? OTP_LENGTH - 1 : firstEmptyIndex);
+              return (
+                <TextInput
+                  key={index}
+                  ref={(ref) => (inputs.current[index] = ref)}
+                  style={[
+                    styles.otpInput,
+                    { width: Math.floor((width - 48 - (OTP_LENGTH - 1) * 8) / OTP_LENGTH) },
+                    digit ? styles.otpInputFilled : {},
+                    isFocused && styles.otpInputActive,
+                  ]}
+                  value={digit}
+                  onChangeText={(text) => handleOtpChange(text, index)}
+                  onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                  keyboardType="number-pad"
+                  maxLength={1}
+                  selectTextOnFocus
+                  caretHidden
+                />
+              );
+            })}
           </View>
         </Animated.View>
 
@@ -286,38 +294,46 @@ const styles = StyleSheet.create({
   emailBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#0f0f0f",
+    backgroundColor: "#111111",
     borderWidth: 1,
-    borderColor: "#1a1a1a",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 28,
+    borderColor: "#ffffff08",
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  emailIconWrapOuter: {
-    marginRight: 14,
+  emailBadgeIconContainer: {
+    marginRight: 12,
   },
   emailIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#ff6b0015",
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "#ff6b0012",
     borderWidth: 1,
-    borderColor: "#ff6b0025",
+    borderColor: "#ff6b0020",
     alignItems: "center",
     justifyContent: "center",
   },
+  emailBadgeTextContainer: {
+    flex: 1,
+  },
   emailBadgeLabel: {
-    fontSize: 9,
-    color: "#555",
-    fontWeight: "900",
-    letterSpacing: 2.5,
-    marginBottom: 3,
+    fontSize: 8,
+    color: "#888",
+    fontWeight: "800",
+    letterSpacing: 2,
+    marginBottom: 2,
   },
   emailBadgeValue: {
     fontSize: 14,
-    color: "#ff6b00",
+    color: "#fff",
     fontWeight: "700",
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   header: {
     marginBottom: 36,
@@ -350,25 +366,33 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   otpInput: {
-    // Fixed width: (screenWidth - 48px padding - 40px gaps) / 6 boxes
-    width: Math.floor((Dimensions.get("window").width - 48 - 40) / 6),
-    height: 60,
-    borderRadius: 14,
-    backgroundColor: "#111",
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: "#111111",
     borderWidth: 1.5,
-    borderColor: "#222",
+    borderColor: "#1a1a1a",
     color: "#fff",
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "900",
     textAlign: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   otpInputFilled: {
     borderColor: "#ff6b00",
-    backgroundColor: "#ff6b0010",
+    backgroundColor: "#ff6b0008",
     color: "#ff6b00",
   },
   otpInputActive: {
-    borderColor: "#ff6b0060",
+    borderColor: "#ff6b00",
+    backgroundColor: "#ff6b0012",
+    shadowColor: "#ff6b00",
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
   ctaBtnIcon: {
     marginRight: 8,
